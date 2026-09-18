@@ -153,6 +153,9 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .party .bottom{display:grid;grid-template-columns:1fr 1fr 1.25fr auto;gap:8px;align-items:end}
 .party label.f{font-size:12px;gap:3px}
 .party .moves{display:flex;gap:4px}
+.party-leader{display:flex;align-items:center;gap:6px;margin-top:2px}
+.party-leader input[type=text]{flex:1;min-width:0;padding:6px 8px;font-size:13px}
+.portrait-thumb.mini{width:26px;height:26px;border-radius:50%;flex:none;background:var(--field) center/cover no-repeat;border:1px solid var(--line)}
 .check.mini{font-size:12.5px;gap:5px;color:var(--muted)}
 .check.mini input{width:15px;height:15px}
 .party.off{opacity:.62}
@@ -177,6 +180,13 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .seg button[aria-pressed=true]{background:var(--panel);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.15)}
 .pop .stat{font-size:12.5px;color:var(--muted)}
 body.presenting .side,body.presenting .wiki{display:none}
+#exitFocus{position:fixed;top:16px;right:16px;z-index:50;box-shadow:0 8px 24px -8px rgba(0,0,0,.4)}
+body.focusing .side{display:none}
+body.focusing .app{grid-template-columns:1fr}
+body.focusing[data-focus="visualiser"] #wiki,body.focusing[data-focus="visualiser"] #results,body.focusing[data-focus="visualiser"] .bars-wrap{display:none}
+body.focusing[data-focus="bars"] .main,body.focusing[data-focus="bars"] #wiki,body.focusing[data-focus="bars"] #results{display:none}
+body.focusing[data-focus="wiki"] .main,body.focusing[data-focus="wiki"] #results,body.focusing[data-focus="wiki"] .bars-wrap{display:none}
+body.focusing[data-focus="results"] .main,body.focusing[data-focus="results"] #wiki,body.focusing[data-focus="results"] .bars-wrap{display:none}
 body.presenting .app{grid-template-columns:1fr}
 body.presenting .stage canvas{max-width:1700px}
 .prev{display:grid;grid-template-columns:auto 1fr 1fr auto;gap:8px;align-items:center;font-size:12px;color:var(--muted);border-top:1px dashed var(--line);padding-top:8px}
@@ -239,6 +249,26 @@ dialog img{display:block;margin:12px 0;border-radius:4px;max-height:70vh;object-
       </div>
     </div>
 
+    <details class="sec">
+      <summary>Layout</summary>
+      <div class="sec-body">
+        <div class="hint" style="margin:0 0 2px">Sections shown on the page</div>
+        <label class="check"><input type="checkbox" data-bind="showGraphic"> Election graphic (Visualiser)</label>
+        <label class="check"><input type="checkbox" data-bind="bars.show"> Party bar chart</label>
+        <label class="check"><input type="checkbox" data-bind="showWiki"> Wikipedia-style infobox</label>
+        <label class="check"><input type="checkbox" data-bind="showResults"> Full results table</label>
+        <label class="f">Focus on
+          <select data-bind="focusMode">
+            <option value="">Off — show everything</option>
+            <option value="visualiser">Election graphic</option>
+            <option value="bars">Party bar chart</option>
+            <option value="wiki">Wikipedia infobox</option>
+            <option value="results">Full results table</option>
+          </select>
+        </label>
+        <p class="hint">Focus hides everything else so you (or whoever you're presenting to) can concentrate on one part. A button to exit stays in the corner.</p>
+      </div>
+    </details>
     <details class="sec" open>
       <summary>Headings</summary>
       <div class="sec-body">
@@ -413,6 +443,10 @@ dialog img{display:block;margin:12px 0;border-radius:4px;max-height:70vh;object-
           <button class="btn small" id="libExportAll">Download whole library</button>
         </div>
         <input type="file" id="libImport" accept="application/json,.json" multiple class="vh" tabindex="-1">
+        <div class="hint" style="margin:6px 0 0">Import from a spreadsheet</div>
+        <button class="btn small" id="xlsxImportBtn">Upload results spreadsheet (.xlsx)</button>
+        <input type="file" id="xlsxFileInput" accept=".xlsx" class="vh" tabindex="-1">
+        <p class="hint">Needs Party, Leader, Votes, %, and Seats columns, with a coloured cell per party \u2014 same layout as the DESV upload template. A second table (e.g. the previous election) is used for comparison automatically.</p>
         <div class="hint" style="margin:6px 0 0">Share this election</div>
         <label class="f">Name this link<input type="text" id="shareName" placeholder="e.g. sweden-2026-swing" maxlength="60"></label>
         <label class="check"><input type="checkbox" id="shareImages"> Include photos, flag and map (makes the link much longer)</label>
@@ -758,6 +792,14 @@ dialog img{display:block;margin:12px 0;border-radius:4px;max-height:70vh;object-
     </div>
   </div>
 </dialog>
+<dialog id="xlsxDlg" aria-labelledby="xlsxTitle" style="width:min(92vw,440px)">
+  <strong id="xlsxTitle">Import from spreadsheet</strong>
+  <div class="hint" id="xlsxSummary" style="margin:10px 0 16px"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end">
+    <button class="btn" id="xlsxCancel">Cancel</button>
+    <button class="btn primary" id="xlsxConfirm">Import and replace parties</button>
+  </div>
+</dialog>
 <dialog id="nextDlg" aria-labelledby="nextTitle" style="width:min(92vw,440px)">
   <strong id="nextTitle">Start the next election</strong>
   <p class="hint" style="margin:6px 0 12px">From <b id="nextFrom"></b>. Its seats and vote shares become the previous result, the year in the titles is updated, seats before election are filled in, and the government after becomes the government before.</p>
@@ -783,6 +825,7 @@ dialog img{display:block;margin:12px 0;border-radius:4px;max-height:70vh;object-
   </div>
 </dialog>
 <input type="file" id="wbFileInput" accept="image/*" class="vh" tabindex="-1">
+<button class="btn primary" id="exitFocus" hidden>Exit focus ✕</button>
 <div class="toast" id="toast" role="status"></div>
 <input type="file" id="photoInput" accept="image/*" class="vh" tabindex="-1">
 
@@ -809,7 +852,7 @@ const nid = () => "p" + (uid++);
 function party(abbr, color, seats, votes, bloc, prevSeats, prevVotes){ return { id: nid(), abbr, color, seats, votes, bloc, included: true, wb: wbPartyDefaults(), prevSeats: prevSeats == null ? null : prevSeats, prevVotes: prevVotes == null ? null : prevVotes }; }
 
 function withWb(p, wb){ p.wb = Object.assign(wbPartyDefaults(), wb); return p; }
-function wbPartyDefaults(){ return { leader: "", portrait: null, portraitSrc: null, portraitZoom: 1, portraitOx: 0, portraitOy: 0, hasCoLeader: false, leader2: "", portrait2: null, portraitSrc2: null, portraitZoom2: 1, portraitOx2: 0, portraitOy2: 0, partyName: "", alliance: "", leaderSeat: "", deputy: "", seatsBefore: null, popularVote: null }; }
+function wbPartyDefaults(){ return { leader: "", prevLeader: "", portrait: null, portraitSrc: null, portraitZoom: 1, portraitOx: 0, portraitOy: 0, hasCoLeader: false, leader2: "", prevLeader2: "", portrait2: null, portraitSrc2: null, portraitZoom2: 1, portraitOx2: 0, portraitOy2: 0, partyName: "", alliance: "", leaderSeat: "", deputy: "", seatsBefore: null, popularVote: null }; }
 function barsDefaults(o){
   return Object.assign({
     show: true, title: "", stat1Label: "", stat1Value: "", stat2Label: "", stat2Value: "",
@@ -850,6 +893,7 @@ const PRESETS = {
     metrics: "both", headline: "votes", chartBasis: "seats", legendMetric: "seats", showPill: true,
     totalSeats: 349, rows: 0, seatWord: "seats", voteWord: "Vote share", decimal: ".",
     showChange: true, changeLabel: "Change since the 2022 election", changeColors: true, swingMode: "blocs", swingA: null, swingB: null,
+    showGraphic: true, showWiki: true, showResults: true, focusMode: "",
     prevYear: "2022", curYear: "2026", prevTitle: "", prevSubtitle: "", theme: "light", showYearToggle: true, viewYear: "current", prevTotalSeats: 349, prevStatus: "**Final result**",
     font: "archivo", bg: "#F4F2F1", text: "#1F1F1F", grayscale: true, autoCutout: true, showLabels: false, showMajority: true,
     blocs: {
@@ -891,6 +935,7 @@ const PRESETS = {
     metrics: "both", headline: "votes", chartBasis: "seats", legendMetric: "seats", showPill: true,
     totalSeats: 100, rows: 0, seatWord: "seats", voteWord: "Vote share", decimal: ".",
     showChange: false, changeLabel: "Change since the previous election", changeColors: true, swingMode: "off", swingA: null, swingB: null,
+    showGraphic: true, showWiki: true, showResults: true, focusMode: "",
     prevYear: "Previous result", curYear: "Current result", prevTitle: "", prevSubtitle: "", theme: "light", showYearToggle: true, viewYear: "current", prevTotalSeats: 0, prevStatus: "**Final result**",
     font: "archivo", bg: "#F4F2F1", text: "#1F1F1F", grayscale: false, autoCutout: true, showLabels: true, showMajority: true,
     blocs: {
@@ -1157,8 +1202,10 @@ function blocEffective(side){
     color = normHex(top.color) || base.color;
   }
   const usingPartyPhoto = !!(top && top.wb && top.wb.portrait);
+  const prevView = state.viewYear === "previous";
+  const topLeader = top && top.wb ? (prevView ? (top.wb.prevLeader || top.wb.leader) : top.wb.leader) : "";
   return {
-    label: (top && top.wb && top.wb.leader) ? top.wb.leader : b.label,
+    label: topLeader || b.label,
     color,
     photo: usingPartyPhoto ? top.wb.portrait : b.photo,
     style: usingPartyPhoto ? "circle" : b.style,
@@ -1428,13 +1475,29 @@ function draw(ctx, opts){
     });
     wBottom = wTop + (totalCols ? rows * cell : 0);
   }
+  // Small leader-face circles, one per party that has a photo, centred over that
+  // party's own block of squares/bar and sitting just below it, above the legend.
+  const centAvg = {};
+  Object.keys(cent).forEach(id => { centAvg[id] = cent[id][0] / cent[id][1]; });
+  const miniR = 20;
+  const miniParties = all.filter(p => inc(p) && p.wb && p.wb.portrait && centAvg[p.id] != null);
+  const anyPartyPhoto = miniParties.length > 0;
+  if (anyPartyPhoto){
+    const miniCy = wBottom + 14 + miniR;
+    miniParties.forEach(p => {
+      const cx = centAvg[p.id];
+      const miniBloc = { photo: p.wb.portrait, color: normHex(p.color) || "#888888", style: "circle", zoom: 1, ox: 0, oy: 0 };
+      drawPhoto(ctx, miniBloc, cx, miniCy, miniR, miniCy + miniR + 2);
+      ctx.beginPath(); ctx.arc(cx, miniCy, miniR, 0, Math.PI * 2); ctx.lineWidth = 2; ctx.strokeStyle = bg; ctx.stroke();
+    });
+  }
+
   if (opts.geo){
     const c = x0 + cw / 2;
     let zl = midL == null ? c : midL, zr = midR == null ? c : midR;
     const half = Math.max(70, (zr - zl) / 2 + 16), mid = (zl + zr) / 2;
     Object.assign(opts.geo, { x0, x1, splitL: mid - half, splitR: mid + half, top: wTop, bottom: wBottom });
-    opts.geo.cent = {};
-    Object.keys(cent).forEach(id => { opts.geo.cent[id] = cent[id][0] / cent[id][1]; });
+    opts.geo.cent = centAvg;
   }
 
   // legend
@@ -1478,7 +1541,7 @@ function draw(ctx, opts){
     if (legendPos) legendPos[p.id] = { x: x + iw / 2, y: yy + lg.box };
     if (opts.geo && opts.geo.legendX) opts.geo.legendX[p.id] = x + iw / 2;
   };
-  const ly = wBottom + 22;
+  const ly = wBottom + 22 + (anyPartyPhoto ? Math.round(miniR * 2.05) + 8 : 0);
   if (!all.length && S.viewYear === "previous"){
     font(600, 24 * k); ctx.fillStyle = muted; ctx.textAlign = "center";
     ctx.fillText("No previous results entered yet. Add them in the Previous row under each party.", W / 2, wBottom + 10);
@@ -1635,6 +1698,9 @@ document.addEventListener("input", e => {
     if (el.dataset.bind === "swingMode") updateSwingUI();
     if (el.dataset.bind === "grayscale") $$(".thumb").forEach(t => t.style.filter = v ? "grayscale(1)" : "");
     if (el.dataset.bind === "metrics" || el.dataset.bind === "decimal") renderParties();
+    if (["showGraphic", "showWiki", "showResults"].includes(el.dataset.bind)) applySectionVisibility();
+    if (el.dataset.bind === "focusMode") applyFocus();
+    if (el.dataset.bind === "bars.show") renderBars();
     if (/^blocs\.(left|right|none)\.label$/.test(el.dataset.bind)) renderParties();
     if (/^blocs\.(left|right|none)\.autoColor$/.test(el.dataset.bind)) renderBlocs();
     if (el.dataset.bind === "metrics") $$("[data-when]").forEach(w => { w.style.display = state.metrics === w.dataset.when ? "" : "none"; });
@@ -1827,12 +1893,18 @@ function renderParties(){
   fillSwingSelects();
   const n = state.parties.length;
   $("#parties").innerHTML = state.parties.map((p, i) => `
-    <div class="party${p.included === false ? " off" : ""}" data-pid="${p.id}" style="--pc:${esc(normHex(p.color) || "#888888")}">
+    <div class="party${p.included === false ? " off" : ""}" data-pid="${p.id}" data-wpid="${p.id}" style="--pc:${esc(normHex(p.color) || "#888888")}">
       <div class="top">
         <span class="color-field">${colorFieldHTML(`parties.${i}.color`, p.color)}</span>
         <input type="text" value="${esc(p.abbr)}" data-pfield="abbr" aria-label="Party name shown" placeholder="Name shown">
         <label class="check mini" title="Count this party toward its side's total"><input type="checkbox" data-pfield="included"${p.included !== false ? " checked" : ""}> Count</label>
         <button class="btn icon danger" data-del="${p.id}" aria-label="Delete ${esc(p.abbr)}" title="Delete party">✕</button>
+      </div>
+      <div class="party-leader">
+        <div class="portrait-thumb mini" data-slot="1" style="${p.wb && p.wb.portrait ? `background-image:url('${p.wb.portrait}')` : ""}"></div>
+        <input type="text" value="${esc((p.wb && p.wb.leader) || "")}" data-wbp="leader" placeholder="Leader name" aria-label="Leader name for ${esc(p.abbr)}">
+        <button class="btn icon" data-wbphoto="${p.id}" aria-label="Upload a leader photo for ${esc(p.abbr)}" title="Upload leader photo">📷</button>
+        ${p.wb && p.wb.portrait ? `<button class="btn icon danger" data-wbphotodel="${p.id}" aria-label="Remove leader photo" title="Remove photo">✕</button>` : ""}
       </div>
       <div class="bottom">
         <label class="f">Seats<input type="number" min="0" step="1" value="${p.seats}" data-pfield="seats"></label>
@@ -2058,6 +2130,7 @@ function fillPop(){
     </div>
     ${portraitSlidersHTML(p)}
     <label class="f">Leader name<input type="text" value="${esc((p.wb && p.wb.leader) || "")}" data-pp="leader" placeholder="For use if this party becomes the bloc's largest"></label>
+    <label class="f">Previous election leader<input type="text" value="${esc((p.wb && p.wb.prevLeader) || "")}" data-pp="prevLeader" placeholder="Leave blank if unchanged"></label>
     <label class="check"><input type="checkbox" data-coleader="${p.id}"${p.wb && p.wb.hasCoLeader ? " checked" : ""}> Co-leaders</label>
     ${p.wb && p.wb.hasCoLeader ? `
     <div class="portrait-row">
@@ -2066,7 +2139,8 @@ function fillPop(){
       ${p.wb.portrait2 ? `<button class="btn small" data-cutwb="${p.id}" data-slot="2">Cutout</button><button class="btn small danger" data-wbphotodel="${p.id}" data-slot="2">Remove</button>` : ""}
     </div>
     ${portraitSlidersHTML(p, "2")}
-    <label class="f">Co-leader name<input type="text" value="${esc(p.wb.leader2 || "")}" data-pp="leader2" placeholder="e.g. Daniel Helld\u00e9n"></label>` : ""}
+    <label class="f">Co-leader name<input type="text" value="${esc(p.wb.leader2 || "")}" data-pp="leader2" placeholder="e.g. Daniel Helld\u00e9n"></label>
+    <label class="f">Previous election co-leader<input type="text" value="${esc(p.wb.prevLeader2 || "")}" data-pp="prevLeader2" placeholder="Leave blank if unchanged"></label>` : ""}
     <div class="row2">
       <label class="f">${esc(cap(state.seatWord) || "Seats")}<input type="number" min="0" step="1" value="${p.seats}" data-pp="seats"></label>
       <label class="f">${esc(cap(state.voteWord) || "Vote share")} %<input type="number" min="0" max="100" step="0.1" value="${p.votes}" data-pp="votes"></label>
@@ -2097,7 +2171,7 @@ pop.addEventListener("input", e => {
   if (f === "included") p.included = el.checked;
   else if (f === "seats" || f === "votes") p[f] = num(el.value);
   else if (f === "prevSeats" || f === "prevVotes"){ p[f] = el.value.trim() === "" ? null : num(el.value); if (p[f] != null) autoChange(); }
-  else if (f === "leader" || f === "leader2"){ p.wb = p.wb || wbPartyDefaults(); p.wb[f] = el.value; syncWbField(p.id, f, el); }
+  else if (f === "leader" || f === "leader2" || f === "prevLeader" || f === "prevLeader2"){ p.wb = p.wb || wbPartyDefaults(); p.wb[f] = el.value; syncWbField(p.id, f, el); }
   else p[f] = f === "color" ? el.value.toUpperCase() : el.value;
   renderParties(); schedule();
   if (f === "seats"){ const st = pop.querySelector(".stat"); if (st) st.textContent = `${d1(num(p.seats) / Math.max(1, num(state.totalSeats)) * 100)}% of all ${state.seatWord}`; }
@@ -2108,7 +2182,7 @@ pop.addEventListener("click", e => {
   if (sb){ p.bloc = sb.dataset.side; $$("[data-side]", pop).forEach(b => b.setAttribute("aria-pressed", b === sb)); renderParties(); schedule(); return; }
   if (e.target.closest("[data-popclose]")){ closePop(true); return; }
   { const ph = e.target.closest("[data-wbphoto]"); if (ph){ wbUploadTarget = { kind: "portrait", id: p.id, slot: ph.dataset.slot || "" }; $("#wbFileInput").value = ""; $("#wbFileInput").click(); return; } }
-  { const pd = e.target.closest("[data-wbphotodel]"); if (pd){ const slot = pd.dataset.slot || ""; p.wb["portrait" + slot] = null; p.wb["portraitSrc" + slot] = null; p.wb["portraitZoom" + slot] = 1; p.wb["portraitOx" + slot] = 0; p.wb["portraitOy" + slot] = 0; fillPop(); renderWbEditor(); schedule(); return; } }
+  { const pd = e.target.closest("[data-wbphotodel]"); if (pd){ const slot = pd.dataset.slot || ""; p.wb["portrait" + slot] = null; p.wb["portraitSrc" + slot] = null; p.wb["portraitZoom" + slot] = 1; p.wb["portraitOx" + slot] = 0; p.wb["portraitOy" + slot] = 0; fillPop(); renderWbEditor(); renderParties(); schedule(); return; } }
   if (e.target.closest("[data-coleader]")){ p.wb.hasCoLeader = !p.wb.hasCoLeader; if (!p.wb.hasCoLeader) p.wb.leader2 = ""; fillPop(); renderWbEditor(); schedule(); return; }
   if (e.target.closest("[data-popdel]")){
     state.parties = state.parties.filter(x => x.id !== p.id);
@@ -2487,7 +2561,7 @@ document.addEventListener("click", async e => {
       const r = await openCutout(c0);
       if (!r || r === "original") return;
       p.wb["portraitSrc" + slot] = r.toDataURL("image/png");
-      regeneratePortrait(p, () => { renderWbEditor(); if (popId === p.id) fillPop(); schedule(); toast("Background removed"); }, slot);
+      regeneratePortrait(p, () => { renderWbEditor(); renderParties(); if (popId === p.id) fillPop(); schedule(); toast("Background removed"); }, slot);
     }
   } catch(err){ toast("Couldn't read that photo."); }
 });
@@ -2542,8 +2616,11 @@ function wbData(p){
   if (hasPrevV && state.metrics !== "seats") last.push(`${fmtP(p.prevVotes)}%`);
   const ds = hasPrevS ? Math.round(num(p.seats)) - Math.round(num(p.prevSeats)) : null;
   const dv = hasPrevV ? Math.round((num(p.votes) - num(p.prevVotes)) * 10) / 10 : null;
+  const prevView = state.viewYear === "previous";
+  const leaderNow = prevView ? (w.prevLeader || w.leader || "") : (w.leader || "");
+  const leader2Now = prevView ? (w.prevLeader2 || (w.hasCoLeader ? w.leader2 : "") || "") : (w.hasCoLeader ? (w.leader2 || "") : "");
   return {
-    leader: w.leader || "", leader2: w.hasCoLeader ? (w.leader2 || "") : "", party: w.partyName || p.abbr || "", alliance: w.alliance || "", seat: w.leaderSeat || "", deputy: w.deputy || "",
+    leader: leaderNow, leader2: leader2Now, party: w.partyName || p.abbr || "", alliance: w.alliance || "", seat: w.leaderSeat || "", deputy: w.deputy || "",
     last: last.join(", ") || (hasPrevS || hasPrevV ? "" : "New"),
     before: w.seatsBefore == null || w.seatsBefore === "" ? "" : fmtInt(num(w.seatsBefore)),
     won: fmtInt(num(p.seats)),
@@ -2768,6 +2845,7 @@ function renderWbEditor(){
       </div>
       ${portraitSlidersHTML(p)}
       <label class="f">${esc(state.wb.leaderLabel || "Leader")} name<input type="text" data-wbp="leader" value="${v(w.leader)}" placeholder="e.g. Magdalena Andersson"></label>
+      <label class="f">Previous election leader<input type="text" data-wbp="prevLeader" value="${v(w.prevLeader)}" placeholder="Leave blank if unchanged since last time"></label>
       <label class="check"><input type="checkbox" data-coleader="${p.id}"${w.hasCoLeader ? " checked" : ""}> Co-leaders (two leaders, one shared photo space)</label>
       ${w.hasCoLeader ? `
       <div class="portrait-row">
@@ -2776,7 +2854,8 @@ function renderWbEditor(){
         ${w.portrait2 ? `<button class="btn small" data-cutwb="${p.id}" data-slot="2">Remove background</button><button class="btn small danger" data-wbphotodel="${p.id}" data-slot="2">Remove</button>` : ""}
       </div>
       ${portraitSlidersHTML(p, "2")}
-      <label class="f">Co-leader name<input type="text" data-wbp="leader2" value="${v(w.leader2)}" placeholder="e.g. Daniel Helld\u00e9n"></label>` : ""}
+      <label class="f">Co-leader name<input type="text" data-wbp="leader2" value="${v(w.leader2)}" placeholder="e.g. Daniel Helld\u00e9n"></label>
+      <label class="f">Previous election co-leader<input type="text" data-wbp="prevLeader2" value="${v(w.prevLeader2)}" placeholder="Leave blank if unchanged"></label>` : ""}
       ${state.wb.showDeputy ? `<label class="f">Deputy leader<input type="text" data-wbp="deputy" value="${v(w.deputy)}"></label>` : ""}
       <div class="row2">
         <label class="f">Full party name<input type="text" data-wbp="partyName" value="${v(w.partyName)}" placeholder="${v(p.abbr)}"></label>
@@ -2801,7 +2880,7 @@ function usableBlocPhoto(p){
 }
 
 // editor events
-$("#wiki").addEventListener("input", e => {
+document.addEventListener("input", e => {
   const el = e.target;
   if (el.dataset.wbp){
     const p = findP(el.closest("[data-wpid]").dataset.wpid); if (!p) return;
@@ -2833,14 +2912,14 @@ $("#wiki").addEventListener("change", e => {
   if (el.dataset.bind === "wb.showDeputy" || el.dataset.bind === "wb.leaderLabel" || el.dataset.bind === "wb.order") renderWbEditor();
 });
 let wbUploadTarget = null;
-$("#wiki").addEventListener("click", e => {
+document.addEventListener("click", e => {
   const t = e.target;
   const up = t.closest("[data-wbphoto]");
   if (up){ wbUploadTarget = { kind: "portrait", id: up.dataset.wbphoto, slot: up.dataset.slot || "" }; $("#wbFileInput").value = ""; $("#wbFileInput").click(); return; }
   const del = t.closest("[data-wbphotodel]");
   if (del){
     const p = findP(del.dataset.wbphotodel), slot = del.dataset.slot || "";
-    if (p){ p.wb["portrait" + slot] = null; p.wb["portraitSrc" + slot] = null; p.wb["portraitZoom" + slot] = 1; p.wb["portraitOx" + slot] = 0; p.wb["portraitOy" + slot] = 0; renderWbEditor(); if (popId === p.id) fillPop(); schedule(); }
+    if (p){ p.wb["portrait" + slot] = null; p.wb["portraitSrc" + slot] = null; p.wb["portraitZoom" + slot] = 1; p.wb["portraitOx" + slot] = 0; p.wb["portraitOy" + slot] = 0; renderWbEditor(); renderParties(); if (popId === p.id) fillPop(); schedule(); }
     return;
   }
   const co = t.closest("[data-coleader]");
@@ -2858,7 +2937,7 @@ $("#wiki").addEventListener("click", e => {
       const img = new Image();
       img.onload = () => {
         p.wb.portraitSrc = b.photo; p.wb.portraitZoom = 1; p.wb.portraitOx = 0; p.wb.portraitOy = 0;
-        regeneratePortrait(p, () => { renderWbEditor(); if (popId === p.id) fillPop(); schedule(); });
+        regeneratePortrait(p, () => { renderWbEditor(); renderParties(); if (popId === p.id) fillPop(); schedule(); });
       };
       img.src = b.photo;
     }
@@ -2984,7 +3063,7 @@ $("#wbFileInput").addEventListener("change", e => {
         if (!c) return;
         p.wb["portraitSrc" + slot] = c.toDataURL(c !== orig || file.type === "image/png" ? "image/png" : "image/jpeg", 0.92);
         p.wb["portraitZoom" + slot] = 1; p.wb["portraitOx" + slot] = 0; p.wb["portraitOy" + slot] = 0;
-        regeneratePortrait(p, () => { renderWbEditor(); if (popId === p.id) fillPop(); }, slot);
+        regeneratePortrait(p, () => { renderWbEditor(); renderParties(); if (popId === p.id) fillPop(); }, slot);
       }
       schedule();
     };
@@ -3710,6 +3789,8 @@ function rollover(src, nextYear, clearNumbers){
     p.wb = Object.assign(wbPartyDefaults(), p.wb || {});
     p.wb.seatsBefore = Math.round(num(p.seats));
     p.wb.popularVote = null;
+    p.wb.prevLeader = p.wb.leader || "";
+    p.wb.prevLeader2 = p.wb.hasCoLeader ? (p.wb.leader2 || "") : "";
     if (clearNumbers){ p.seats = 0; p.votes = 0; }
   });
   s.prevTotalSeats = s.totalSeats;
@@ -3754,6 +3835,12 @@ function importPrevious(src){
     p.prevSeats = Math.round(num(q.seats));
     p.prevVotes = num(q.votes);
     if (p.wb && (p.wb.seatsBefore == null || p.wb.seatsBefore === "")) p.wb.seatsBefore = Math.round(num(q.seats));
+    if (p.wb && q.wb){
+      const qLeader = q.wb.leader || "";
+      if (qLeader && qLeader !== p.wb.leader) p.wb.prevLeader = qLeader;
+      const qLeader2 = q.wb.hasCoLeader ? (q.wb.leader2 || "") : "";
+      if (qLeader2 && qLeader2 !== p.wb.leader2) p.wb.prevLeader2 = qLeader2;
+    }
   });
   const y = String(srcS.curYear || "").trim() || yearOf(srcS);
   if (y) state.prevYear = y;
@@ -4058,6 +4145,179 @@ $("#loadCodeInput").addEventListener("keydown", e => { if (e.key === "Enter"){ e
   });
 })();
 
+/* ---------- spreadsheet import (DESV upload template) ---------- */
+let xlsxLibPromise = null;
+function loadXLSXLib(){
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (!xlsxLibPromise){
+    xlsxLibPromise = new Promise((res, rej) => {
+      const sc = document.createElement("script");
+      sc.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+      sc.onload = () => window.XLSX ? res(window.XLSX) : rej(new Error("missing"));
+      sc.onerror = () => { xlsxLibPromise = null; rej(new Error("load failed")); };
+      document.head.appendChild(sc);
+    });
+  }
+  return xlsxLibPromise;
+}
+const DEFAULT_THEME_HEX = ["FFFFFF", "000000", "E7E6E6", "44546A", "4472C4", "ED7D31", "A5A5A5", "FFC000", "5B9BD5", "70AD47"];
+function xlsxCellColor(cell){
+  if (!cell || !cell.s || cell.s.patternType !== "solid") return null;
+  const fg = cell.s.fgColor; if (!fg) return null;
+  if (fg.rgb){ const h = normHex("#" + String(fg.rgb).slice(-6)); return h; }
+  if (fg.theme != null){
+    const base = DEFAULT_THEME_HEX[fg.theme] || "FFFFFF";
+    let rgb = [0, 2, 4].map(i => parseInt(base.substr(i, 2), 16));
+    const tint = fg.tint || 0;
+    rgb = rgb.map(c => tint < 0 ? c * (1 + tint) : c * (1 - tint) + 255 * tint);
+    return "#" + rgb.map(c => clamp(Math.round(c), 0, 255).toString(16).padStart(2, "0")).join("").toUpperCase();
+  }
+  return null;
+}
+function xlsxAbbrFor(name, used){
+  const words = String(name || "").trim().split(/\s+/).filter(Boolean);
+  let abbr = words.length > 1 ? words.map(w => w[0]).join("").toUpperCase().slice(0, 4) : String(name || "").slice(0, 3).toUpperCase();
+  if (!abbr) abbr = "PTY";
+  let out = abbr, n = 2;
+  while (used.has(out)) out = abbr + (n++);
+  used.add(out);
+  return out;
+}
+function xlsxFindTables(ws, XLSX){
+  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const norm = v => String(v == null ? "" : v).trim().toLowerCase();
+  const tables = [];
+  for (let R = range.s.r; R <= range.e.r; R++){
+    for (let C = range.s.c; C <= range.e.c; C++){
+      const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+      if (!cell || norm(cell.v) !== "party") continue;
+      // Determine whether the header is merged across 2 columns (colour + name) or just 1.
+      const merges = ws["!merges"] || [];
+      const merge = merges.find(m => m.s.r === R && m.s.c === C);
+      const nameCol = merge && merge.e.c === C + 1 ? C + 1 : C;
+      const colorCol = nameCol > C ? C : null;
+      // Scan the rest of this header row for Leader / Votes / % / Seats columns.
+      const cols = { name: nameCol };
+      for (let CC = nameCol + 1; CC <= Math.min(range.e.c, nameCol + 8); CC++){
+        const h = norm((ws[XLSX.utils.encode_cell({ r: R, c: CC })] || {}).v);
+        if (h === "leader" && cols.leader == null) cols.leader = CC;
+        else if (h === "votes" && cols.votes == null) cols.votes = CC;
+        else if (h === "%" && cols.pct == null) cols.pct = CC;
+        else if (h === "seats" && cols.seats == null) cols.seats = CC;
+      }
+      if (cols.votes == null && cols.seats == null) continue; // not a real results table
+      // Title: look up to 3 rows above for a merged/plain title cell overlapping this column range.
+      let title = "";
+      for (let TR = R - 1; TR >= Math.max(range.s.r, R - 3) && !title; TR--){
+        for (let TC = Math.max(range.s.c, C - 2); TC <= C + 2; TC++){
+          const t = (ws[XLSX.utils.encode_cell({ r: TR, c: TC })] || {}).v;
+          if (typeof t === "string" && t.trim()){ title = t.trim(); break; }
+        }
+      }
+      // Data rows: from R+1 down to blank name / a "Total" row.
+      const rows = [];
+      for (let DR = R + 1; DR <= range.e.r + 1; DR++){
+        const nameCell = ws[XLSX.utils.encode_cell({ r: DR, c: nameCol })];
+        const leftLabel = norm((ws[XLSX.utils.encode_cell({ r: DR, c: C })] || {}).v);
+        if (leftLabel === "total" || (!nameCell || !String(nameCell.v || "").trim())) break;
+        const val = col => { const cc = cols[col]; if (cc == null) return null; const cv = ws[XLSX.utils.encode_cell({ r: DR, c: cc })]; return cv ? cv.v : null; };
+        rows.push({
+          name: String(nameCell.v).trim(),
+          color: colorCol != null ? xlsxCellColor(ws[XLSX.utils.encode_cell({ r: DR, c: colorCol })]) : null,
+          leader: cols.leader != null ? String(val("leader") || "").trim() : "",
+          votes: val("votes"), pct: val("pct"), seats: val("seats")
+        });
+      }
+      if (rows.length) tables.push({ title, headerRow: R, rows });
+    }
+  }
+  return tables;
+}
+function xlsxBuildElection(tables){
+  const cur = tables[0];
+  const prevTables = tables.slice(1);
+  const used = new Set();
+  const others = { label: "", votes: null, pct: null, seats: null };
+  const parties = [];
+  cur.rows.forEach(r => {
+    if (/^other/i.test(r.name)){
+      others.label = r.name; others.votes = r.votes; others.pct = r.pct; others.seats = r.seats;
+      return;
+    }
+    const abbr = xlsxAbbrFor(r.name, used);
+    const votesPct = r.pct != null ? num(r.pct) * 100 : null;
+    const p = party(abbr, r.color || "#888888", r.seats != null ? Math.round(num(r.seats)) : 0, votesPct != null ? votesPct : 0, "none");
+    p.wb.partyName = r.name;
+    p.wb.leader = r.leader || "";
+    if (r.votes != null) p.wb.popularVote = Math.round(num(r.votes));
+    p._matchName = r.name.trim().toLowerCase();
+    parties.push(p);
+  });
+  // Fold in the first "previous" table found, matched by party name.
+  let prevInfo = null;
+  if (prevTables.length){
+    const prev = prevTables[0];
+    prevInfo = { title: prev.title };
+    prev.rows.forEach(r => {
+      if (/^other/i.test(r.name)) return;
+      const target = parties.find(p => p._matchName === r.name.trim().toLowerCase());
+      if (!target) return;
+      if (r.seats != null) target.prevSeats = Math.round(num(r.seats));
+      if (r.pct != null) target.prevVotes = num(r.pct) * 100;
+      if (r.leader && r.leader !== target.wb.leader) target.wb.prevLeader = r.leader;
+    });
+  }
+  parties.forEach(p => delete p._matchName);
+  const totalSeats = parties.reduce((a, p) => a + num(p.seats), 0) + (others.seats != null ? Math.round(num(others.seats)) : 0);
+  return { cur, parties, others, prevInfo, totalSeats: totalSeats || 100 };
+}
+function xlsxYearFromTitle(t){ const m = String(t || "").match(/\b(1[5-9]\d{2}|2\d{3})\b/); return m ? m[1] : ""; }
+
+let xlsxPendingImport = null;
+async function handleXlsxFile(file){
+  try {
+    const XLSX = await loadXLSXLib();
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: "array", cellStyles: true });
+    let tables = [];
+    for (const name of wb.SheetNames){ tables = tables.concat(xlsxFindTables(wb.Sheets[name], XLSX)); if (tables.length) break; }
+    if (!tables.length){ toast("Couldn't find a results table in that file. It should have Party / Leader / Votes / % / Seats headers, like the DESV template."); return; }
+    const built = xlsxBuildElection(tables);
+    xlsxPendingImport = built;
+    const extra = tables.length > 2 ? ` (plus ${tables.length - 2} more table${tables.length > 3 ? "s" : ""} not yet used)` : "";
+    $("#xlsxSummary").innerHTML = `Found <b>${built.parties.length}</b> ${built.parties.length === 1 ? "party" : "parties"} in \u201c${esc(built.cur.title || "this sheet")}\u201d${built.prevInfo ? `, compared with \u201c${esc(built.prevInfo.title)}\u201d` : ""}${extra}. This will replace your current parties.`;
+    $("#xlsxDlg").showModal();
+  } catch(e){
+    toast("Couldn't read that spreadsheet. Make sure it's a .xlsx file matching the DESV template.");
+  }
+}
+$("#xlsxImportBtn").addEventListener("click", () => { $("#xlsxFileInput").value = ""; $("#xlsxFileInput").click(); });
+$("#xlsxFileInput").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; if (f) handleXlsxFile(f); });
+$("#xlsxCancel").addEventListener("click", () => { $("#xlsxDlg").close(); xlsxPendingImport = null; });
+$("#xlsxConfirm").addEventListener("click", () => {
+  const built = xlsxPendingImport; if (!built) return;
+  rememberUndo("spreadsheet import");
+  state.parties = built.parties;
+  state.totalSeats = built.totalSeats;
+  if (built.others.label){
+    state.rt.othersLabel = built.others.label;
+    if (built.others.votes != null) state.rt.othersVotes = String(Math.round(num(built.others.votes)));
+  }
+  const y = xlsxYearFromTitle(built.cur.title);
+  if (built.cur.title) { state.title = built.cur.title; state.wb.title = built.cur.title; }
+  if (built.prevInfo){
+    state.showChange = true;
+    const py = xlsxYearFromTitle(built.prevInfo.title);
+    if (py) { state.prevYear = py; state.wb.prevLink = py; }
+    state.prevTotalSeats = state.totalSeats;
+  }
+  if (y) state.curYear = y;
+  syncUid(); allowSave = true;
+  $("#xlsxDlg").close(); xlsxPendingImport = null;
+  renderAll();
+  toast(`Imported ${state.parties.length} parties \u2014 drag them onto a side, or set Bloc in the Parties list, to build the left/right split`);
+});
+
 (function setupRestore(){
   const box = $("#restoreBox");
   const sig = st => (st.title || "") + "|" + st.parties.map(p => `${p.abbr}:${p.seats}:${p.votes}:${p.bloc}`).join(",") + "|" + !!(st.blocs.left.photo || st.blocs.right.photo);
@@ -4074,7 +4334,22 @@ $("#loadCodeInput").addEventListener("keydown", e => { if (e.key === "Enter"){ e
   };
   ["input", "change", "pointerdown", "keydown"].forEach(t => document.addEventListener(t, arm, true));
 })();
-function renderAll(){ syncBound(); renderBlocs(); renderParties(); renderWbEditor(); renderRtEditor(); renderLibrary(); schedule(); }
+function applySectionVisibility(){
+  const mainEl = document.querySelector(".main");
+  if (mainEl) mainEl.style.display = state.showGraphic ? "" : "none";
+  const wikiEl = $("#wiki"); if (wikiEl) wikiEl.style.display = state.showWiki ? "" : "none";
+  const resultsEl = $("#results"); if (resultsEl) resultsEl.style.display = state.showResults ? "" : "none";
+}
+function applyFocus(){
+  const m = state.focusMode || "";
+  document.body.classList.toggle("focusing", !!m);
+  if (m) document.body.setAttribute("data-focus", m); else document.body.removeAttribute("data-focus");
+  $("#exitFocus").hidden = !m;
+}
+$("#exitFocus").addEventListener("click", () => {
+  state.focusMode = ""; syncBound(); applyFocus();
+});
+function renderAll(){ syncBound(); renderBlocs(); renderParties(); renderWbEditor(); renderRtEditor(); renderLibrary(); applySectionVisibility(); applyFocus(); schedule(); }
 
 updateMobileZoom();
 renderAll();
