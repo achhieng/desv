@@ -146,6 +146,7 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .bloc h3 i{width:12px;height:12px;border-radius:50%;display:inline-block}
 .photo-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .thumb{width:52px;height:52px;border-radius:50%;flex:none;background:var(--field) center/cover no-repeat;border:1px solid var(--line)}
+.bloc .check{margin-top:2px}
 
 .party{border:1px solid var(--line);border-left:6px solid var(--pc,#999);border-radius:9px;padding:10px 10px 10px 11px;display:grid;gap:8px}
 .party .top{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:8px;align-items:center}
@@ -155,7 +156,15 @@ input[type=number]{font-variant-numeric:tabular-nums}
 .party .moves{display:flex;gap:4px}
 .party-leader{display:flex;align-items:center;gap:6px;margin-top:2px}
 .party-leader input[type=text]{flex:1;min-width:0;padding:6px 8px;font-size:13px}
+.party-section{width:100%;margin-top:4px;padding:6px 8px;font-size:12.5px;color:var(--muted);background:var(--field);border:1px solid var(--line);border-radius:7px}
 .portrait-thumb.mini{width:26px;height:26px;border-radius:50%;flex:none;background:var(--field) center/cover no-repeat;border:1px solid var(--line)}
+.rt-sec-card{border:1px solid var(--line);border-radius:9px;padding:10px;display:grid;gap:8px;background:var(--field)}
+.tmpl-grid{display:flex;flex-direction:column;gap:8px}
+.tmpl-card{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:14px;padding:8px 14px;background:#fff;cursor:pointer;text-align:left;font:inherit;width:100%;color:inherit}
+.tmpl-card:hover{background:var(--field);border-color:var(--muted)}
+.tmpl-flag{width:30px;height:22px;object-fit:cover;border-radius:4px;flex:none;box-shadow:0 1px 2px rgba(0,0,0,.18)}
+.tmpl-flag.blank{display:flex;align-items:center;justify-content:center;background:var(--field);color:var(--muted);font-size:9px;border:1px solid var(--line)}
+.tmpl-name{font-weight:500;font-size:14.5px;line-height:1.3}
 .check.mini{font-size:12.5px;gap:5px;color:var(--muted)}
 .check.mini input{width:15px;height:15px}
 .party.off{opacity:.62}
@@ -234,7 +243,7 @@ dialog img{display:block;margin:12px 0;border-radius:4px;max-height:70vh;object-
       <p class="about">Drew's Election Sandbox Visualiser (DESV) is an interactive sandbox tool for election enthusiasts to create, customise, and share fictional election graphics, visualisations, maps, results, and Wikipedia-style infographics.</p>
       <p>Edit on the left. The preview updates as you type.</p>
       <div class="presets">
-        <button class="btn small" data-preset="sweden">Load Sweden example</button>
+        <button class="btn small primary" id="openTemplates">Templates</button>
         <button class="btn small" data-preset="blank">Start blank</button>
       </div>
       <div class="restore" id="shareIncoming" hidden>
@@ -605,13 +614,9 @@ dialog img{display:block;margin:12px 0;border-radius:4px;max-height:70vh;object-
           <summary>Map and government</summary>
           <div class="sec-body">
             <label class="check"><input type="checkbox" data-bind="wb.mapOn"> Show a map section</label>
-            <div class="portrait-row">
-              <div class="portrait-thumb" id="wbMapThumb" style="width:70px;height:52px"></div>
-              <button class="btn small" id="wbMapUp">Upload map</button>
-              <button class="btn small danger" id="wbMapDel">Remove</button>
-            </div>
-            <label class="f">Map caption<input type="text" data-bind="wb.mapCaption" placeholder="e.g. Largest party in each constituency"></label>
-            <p class="hint">With no map uploaded, a placeholder box is shown.</p>
+            <div id="wbMaps" style="display:grid;gap:10px"></div>
+            <button class="btn small" id="wbAddMap">Add another map</button>
+            <p class="hint">With no image uploaded, a labelled placeholder box is shown. Add more than one map and the infobox shows a row of buttons to switch between them (e.g. "Map 1" / "Map 2").</p>
             <label class="check"><input type="checkbox" data-bind="wb.govOn"> Show before and after the election</label>
             <label class="f">Office<input type="text" data-bind="wb.govTitle" placeholder="Prime Minister"></label>
             <div class="row2">
@@ -641,6 +646,7 @@ dialog img{display:block;margin:12px 0;border-radius:4px;max-height:70vh;object-
               <label class="f">Borders<span class="color-field" data-color="wb.border"></span></label>
               <label class="f">Table header<span class="color-field" data-color="wb.headerBg"></span></label>
             </div>
+            <label class="check"><input type="checkbox" data-bind="wb.showLinks"> Show names as blue Wikipedia-style links</label>
             <label class="f">Link colour<span class="color-field" data-color="wb.link"></span></label>
           </div>
         </details>
@@ -718,6 +724,7 @@ dialog img{display:block;margin:12px 0;border-radius:4px;max-height:70vh;object-
                 <option value="party">Party breakdown</option>
                 <option value="coalition">Coalition breakdown</option>
                 <option value="both">Both, stacked</option>
+                <option value="sections">By electorate / section</option>
               </select>
             </label>
             <div class="row2">
@@ -731,6 +738,14 @@ dialog img{display:block;margin:12px 0;border-radius:4px;max-height:70vh;object-
               <label class="f">Bloc table heading<input type="text" data-bind="rt.blocHeading" placeholder="Bloc"></label>
             </div>
             <p class="hint">Blocs follow the sides on your graphic. Parties with no bloc, or left out with their tick box, count as Others. The coalition and party settings below only apply when that breakdown is showing.</p>
+          </div>
+        </details>
+        <details class="sec">
+          <summary>Electorates / sections</summary>
+          <div class="sec-body">
+            <p class="hint" style="margin:0">For elections counted in separate regions (e.g. Denmark proper, the Faroe Islands, Greenland). Give each party an Electorate/section in the Parties list matching one of these names, then choose \u201cBy electorate / section\u201d above.</p>
+            <div id="rtSections" style="display:grid;gap:10px"></div>
+            <button class="btn small" id="rtAddSection">Add electorate / section</button>
           </div>
         </details>
         <details class="sec">
@@ -792,6 +807,14 @@ dialog img{display:block;margin:12px 0;border-radius:4px;max-height:70vh;object-
     </div>
   </div>
 </dialog>
+<dialog id="templatesDlg" aria-labelledby="templatesTitle" style="width:min(94vw,560px)">
+  <strong id="templatesTitle">Choose a template</strong>
+  <p class="hint" style="margin:6px 0 14px">A complete, real-world example to explore or build on. This replaces your current election.</p>
+  <div class="tmpl-grid" id="tmplGrid"></div>
+  <div style="display:flex;justify-content:flex-end;margin-top:14px">
+    <button class="btn" id="templatesClose">Close</button>
+  </div>
+</dialog>
 <dialog id="xlsxDlg" aria-labelledby="xlsxTitle" style="width:min(92vw,440px)">
   <strong id="xlsxTitle">Import from spreadsheet</strong>
   <div class="hint" id="xlsxSummary" style="margin:10px 0 16px"></div>
@@ -849,10 +872,10 @@ const FONTS = {
 let uid = 1;
 const nid = () => "p" + (uid++);
 
-function party(abbr, color, seats, votes, bloc, prevSeats, prevVotes){ return { id: nid(), abbr, color, seats, votes, bloc, included: true, wb: wbPartyDefaults(), prevSeats: prevSeats == null ? null : prevSeats, prevVotes: prevVotes == null ? null : prevVotes }; }
+function party(abbr, color, seats, votes, bloc, prevSeats, prevVotes){ return { id: nid(), abbr, color, seats, votes, bloc, included: true, section: "", wb: wbPartyDefaults(), prevSeats: prevSeats == null ? null : prevSeats, prevVotes: prevVotes == null ? null : prevVotes }; }
 
-function withWb(p, wb){ p.wb = Object.assign(wbPartyDefaults(), wb); return p; }
-function wbPartyDefaults(){ return { leader: "", prevLeader: "", portrait: null, portraitSrc: null, portraitZoom: 1, portraitOx: 0, portraitOy: 0, hasCoLeader: false, leader2: "", prevLeader2: "", portrait2: null, portraitSrc2: null, portraitZoom2: 1, portraitOx2: 0, portraitOy2: 0, partyName: "", alliance: "", leaderSeat: "", deputy: "", seatsBefore: null, popularVote: null }; }
+function withWb(p, wb, section){ p.wb = Object.assign(wbPartyDefaults(), wb); if (section) p.section = section; return p; }
+function wbPartyDefaults(){ return { leader: "", prevLeader: "", portrait: null, portraitSrc: null, portraitZoom: 1, portraitOx: 0, portraitOy: 0, hasCoLeader: false, leader2: "", prevLeader2: "", portrait2: null, portraitSrc2: null, portraitZoom2: 1, portraitOx2: 0, portraitOy2: 0, partyName: "", alliance: "", leaderSeat: "", deputy: "", seatsBefore: null, popularVote: null, prevPopularVote: null }; }
 function barsDefaults(o){
   return Object.assign({
     show: true, title: "", stat1Label: "", stat1Value: "", stat2Label: "", stat2Value: "",
@@ -866,7 +889,7 @@ function rtDefaults(o){
     caption: "", sort: "votes", pctFrom: "shares", estimate: false, showAbbr: true,
     othersLabel: "", othersVotes: "", othersPct: "", othersSeats: "",
     valid: "", invalid: "", blank: "", registered: "",
-    showArc: true, showChange: true, showBloc: true, view: "both", showMembers: true, showBlocTurnout: true,
+    showArc: true, showChange: true, showBloc: true, view: "both", showMembers: true, showBlocTurnout: true, sections: [],
     partyHeading: "By party", blocHeading: "By bloc", leftName: "", rightName: "",
     source: "", width: 520
   }, o);
@@ -875,19 +898,86 @@ function wbDefaults(o){
   return Object.assign({
     layout: "grid", title: "", flag: null, flagWidth: 50, date: "", prevLink: "", nextLink: "", subLink: "", subLinkRight: "",
     turnoutPct: "", turnoutChange: "", prevTurnoutPct: "", prevRegistered: "",
-    mapOn: false, map: null, mapCaption: "", govOn: false, govTitle: "Prime Minister", govBeforeName: "", govBeforeParty: "", govAfterName: "", govAfterParty: "",
+    mapOn: false, map: null, mapCaption: "", maps: [], govOn: false, govTitle: "Prime Minister", govBeforeName: "", govBeforeParty: "", govAfterName: "", govAfterParty: "",
     legislature: "parliament", seatsText: "", majorityText: "", pollsText: "",
     registered: "", registeredChange: "", turnoutLabel: "Turnout", turnoutValue: "",
     reportingOn: false, reportingPct: "", reportingAsOf: "",
     leaderLabel: "Leader", showDeputy: false, perRow: 3, width: 420, order: "seats", columns: null, custom: [],
-    colGap: 6, barGap: 0,
+    colGap: 6, barGap: 0, showLinks: true,
     bg: "#F8F9FA", text: "#202122", border: "#A2A9B1", headerBg: "#EAECF0", link: "#3366CC"
   }, o);
 }
 const PRESETS = {
+  denmark: () => {
+    const parties = [
+      withWb(party("Ø", "#E67E22", 11, 6.25, "left", 9, 5.13), { leader: "Pelle Dragsted", partyName: "Red–Green Alliance", popularVote: 226037 }, "Denmark"),
+      withWb(party("IA", "#C0392B", 1, 0.17, "left", 1, 0.17), { leader: "Múte Bourup Egede", partyName: "Inuit Ataqatigiit", popularVote: 6133, prevPopularVote: 6100 }, "Greenland"),
+      withWb(party("F", "#E381A8", 20, 11.42, "left", 15, 8.19), { leader: "Pia Olsen Dyhr", partyName: "Green Left", popularVote: 413306 }, "Denmark"),
+      withWb(party("Å", "#7AB93D", 5, 2.54, "left", 6, 3.26), { leader: "Franciska Rosenkilde", partyName: "The Alternative", popularVote: 91770 }, "Denmark"),
+      withWb(party("A", "#A93226", 38, 21.54, "left", 50, 27.14), { leader: "Mette Frederiksen", partyName: "Social Democrats", popularVote: 779252 }, "Denmark"),
+      withWb(party("JF", "#C0392B", 1, 0.36, "left", 1, 0.36), { leader: "Aksel V. Johannesen", partyName: "Social Democratic Party", popularVote: 13088, prevPopularVote: 13000 }, "Faroe Islands"),
+      withWb(party("B", "#B19CD9", 10, 5.73, "left", 7, 3.75), { leader: "Martin Lidegaard", partyName: "Danish Social Liberal Party", popularVote: 207442 }, "Denmark"),
+      withWb(party("PN", "#E67E22", 1, 0.15, "left", 0, 0.1), { leader: "Pele Broberg", partyName: "Naleraq", popularVote: 5268, prevPopularVote: 3600 }, "Greenland"),
+      withWb(party("TF", "#16A085", 0, 0.11, "left", 0, 0.11), { partyName: "Republic", popularVote: 3891, prevPopularVote: 3850 }, "Faroe Islands"),
+      withWb(party("SIU", "#8E44AD", 0, 0.1, "left", 1, 0.14), { partyName: "Siumut", popularVote: 3515, prevPopularVote: 5000 }, "Greenland"),
+      withWb(party("M", "#8E6BAE", 14, 7.6, "none", 16, 9.18), { leader: "Lars Løkke Rasmussen", partyName: "Moderates", popularVote: 274775 }, "Denmark"),
+      withWb(party("SP", "#2E5A8C", 1, 0.2, "right", 1, 0.2), { leader: "Bárður á Steig Nielsen", partyName: "Union Party", popularVote: 7342, prevPopularVote: 7300 }, "Faroe Islands"),
+      withWb(party("V", "#1B3A63", 18, 10.0, "right", 23, 13.13), { leader: "Troels Lund Poulsen", partyName: "Venstre", popularVote: 361689 }, "Denmark"),
+      withWb(party("C", "#0A5C36", 13, 7.48, "right", 10, 5.43), { leader: "Mona Juul", partyName: "Conservative People's Party", popularVote: 270749 }, "Denmark"),
+      withWb(party("I", "#2AA9B8", 16, 9.24, "right", 14, 7.8), { leader: "Alex Vanopslagh", partyName: "Liberal Alliance", popularVote: 334421 }, "Denmark"),
+      withWb(party("Æ", "#4FA8DA", 10, 5.67, "right", 14, 8.0), { leader: "Inger Støjberg", partyName: "Denmark Democrats", popularVote: 205302 }, "Denmark"),
+      withWb(party("O", "#F2C40C", 16, 8.97, "right", 5, 2.57), { leader: "Morten Messerschmidt", partyName: "Danish People's Party", popularVote: 324518 }, "Denmark"),
+      withWb(party("H", "#7C8996", 4, 2.1, "right", null, null), { leader: "Lars Boje Mathiesen", partyName: "Citizens' Party", popularVote: 75928 }, "Denmark"),
+      withWb(party("FF", "#F39C12", 0, 0.12, "right", 0, 0.12), { partyName: "People's Party", popularVote: 4383, prevPopularVote: 4350 }, "Faroe Islands"),
+      withWb(party("MF", "#9B59B6", 0, 0.01, "right", 0, 0.01), { partyName: "Centre Party", popularVote: 437, prevPopularVote: 430 }, "Faroe Islands"),
+      withWb(party("D", "#3498DB", 0, 0.1, "right", 0, 0.1), { partyName: "Democrats", popularVote: 3767, prevPopularVote: 3700 }, "Greenland"),
+      withWb(party("AT", "#2C3E50", 0, 0.06, "right", 0, 0.06), { partyName: "Atassut", popularVote: 2290, prevPopularVote: 2300 }, "Greenland")
+    ];
+    return {
+      title: "2026 Danish General Election",
+      subtitle: "Denmark",
+      status: "**Final result**",
+      footer: "",
+      metrics: "both", headline: "votes", chartBasis: "seats", legendMetric: "seats", showPill: true,
+      totalSeats: 179, rows: 0, seatWord: "seats", voteWord: "Vote share", decimal: ".",
+      showChange: true, changeLabel: "Change since the 2022 election", changeColors: true, swingMode: "blocs", swingA: null, swingB: null,
+      showGraphic: true, showWiki: true, showResults: true, focusMode: "",
+      prevYear: "2022", curYear: "2026", prevTitle: "", prevSubtitle: "", theme: "light", showYearToggle: true, viewYear: "current", prevTotalSeats: 179, prevStatus: "**Final result**",
+      font: "archivo", bg: "#F4F2F1", text: "#1F1F1F", grayscale: true, autoCutout: true, showLabels: false, showMajority: true,
+      blocs: {
+        left:  { label: "Mette Frederiksen (S)", color: "#A93226", photo: null, photo2: null, style: "cutout", zoom: 1, ox: 0, oy: 0, autoColor: false },
+        right: { label: "Troels Lund Poulsen (V)", color: "#1B3A63", photo: null, photo2: null, style: "cutout", zoom: 1, ox: 0, oy: 0, autoColor: false },
+        none:  { label: "Moderates", color: "#8E6BAE", photo: null, photo2: null, style: "circle", zoom: 1, ox: 0, oy: 0, autoColor: true }
+      },
+      parties,
+      rt: rtDefaults({
+        leftName: "Red bloc", rightName: "Blue bloc", source: "Election Authority", view: "sections",
+        sections: [
+          { name: "Denmark", overviewName: "Denmark proper", registered: "4303429", invalid: "9050", blank: "37597", source: "dst.dk, dr.dk" },
+          { name: "Faroe Islands", registered: "38955", invalid: "69", blank: "188", source: "kvf.fo" },
+          { name: "Greenland", registered: "40952", invalid: "158", blank: "297", source: "qinersineq.gl" }
+        ]
+      }),
+      bars: barsDefaults({ title: "Denmark", stat1Label: "Turnout", stat1Value: "**83.99%**", stat2Label: "Result", stat2Value: "**Final**" }),
+      wb: wbDefaults({
+        layout: "list", perRow: 3, width: 560,
+        title: "2026 Danish general election", flag: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNyAyOCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxMjEiPjxyZWN0IHdpZHRoPSIzNyIgaGVpZ2h0PSIyOCIgZmlsbD0iI0M4MTAyRSIvPjxyZWN0IHg9IjEyIiB3aWR0aD0iNiIgaGVpZ2h0PSIyOCIgZmlsbD0iI0ZGRkZGRiIvPjxyZWN0IHk9IjExIiB3aWR0aD0iMzciIGhlaWdodD0iNiIgZmlsbD0iI0ZGRkZGRiIvPjwvc3ZnPg==",
+        date: "24 March 2026", prevLink: "2022", nextLink: "2030", subLink: "outgoing members", subLinkRight: "elected members",
+        mapOn: false, govOn: true, govTitle: "Prime Minister", govBeforeName: "Mette Frederiksen", govBeforeParty: "Social Democrats",
+        govAfterName: "Mette Frederiksen", govAfterParty: "Social Democrats",
+        legislature: "Folketing", pollsText: "Opinion polls",
+        seatsText: "",
+        majorityText: "90 seats needed for a majority",
+        registered: "", registeredChange: "", prevRegistered: "",
+        turnoutPct: "83.99", prevTurnoutPct: "84.16",
+        reportingOn: false, reportingPct: "100", reportingAsOf: "",
+        columns: parties.filter(p => p.seats > 0).map(p => p.id)
+      })
+    };
+  },
   sweden: () => ({
-    title: "Election results 2026",
-    subtitle: "Swedish general election – Sweden",
+    title: "2026 Swedish General Election",
+    subtitle: "Sweden",
     status: "**Final result**",
     footer: "",
     metrics: "both", headline: "votes", chartBasis: "seats", legendMetric: "seats", showPill: true,
@@ -897,33 +987,33 @@ const PRESETS = {
     prevYear: "2022", curYear: "2026", prevTitle: "", prevSubtitle: "", theme: "light", showYearToggle: true, viewYear: "current", prevTotalSeats: 349, prevStatus: "**Final result**",
     font: "archivo", bg: "#F4F2F1", text: "#1F1F1F", grayscale: true, autoCutout: true, showLabels: false, showMajority: true,
     blocs: {
-      left:  { label: "Magdalena Andersson (S)", color: "#DD3E45", photo: null, style: "cutout", zoom: 1, ox: 0, oy: 0, autoColor: false },
-      right: { label: "Ulf Kristersson (M)",     color: "#4A96C9", photo: null, style: "cutout", zoom: 1, ox: 0, oy: 0, autoColor: false },
-      none:  { label: "Unaligned", color: "#9AA0A6", photo: null, style: "circle", zoom: 1, ox: 0, oy: 0, autoColor: true }
+      left:  { label: "Magdalena Andersson (S)", color: "#DD3E45", photo: null, photo2: null, style: "cutout", zoom: 1, ox: 0, oy: 0, autoColor: false },
+      right: { label: "Ulf Kristersson (M)",     color: "#4A96C9", photo: null, photo2: null, style: "cutout", zoom: 1, ox: 0, oy: 0, autoColor: false },
+      none:  { label: "Unaligned", color: "#9AA0A6", photo: null, photo2: null, style: "circle", zoom: 1, ox: 0, oy: 0, autoColor: true }
     },
     parties: [
-      withWb(party("V",  "#B8323B", 29, 8.3, "left", 24, 6.75), { leader: "Nooshi Dadgostar", partyName: "Left", leaderSeat: "Stockholm County", seatsBefore: 21, popularVote: 528959 }),
-      withWb(party("S",  "#E0444B", 100, 28.1, "left", 107, 30.33), { leader: "Magdalena Andersson", partyName: "Social Democrats", leaderSeat: "Stockholm County", seatsBefore: 106, popularVote: 1790848 }),
-      withWb(party("MP", "#2FA255", 22, 6.1, "left", 18, 5.08), { leader: "Amanda Lind", hasCoLeader: true, leader2: "Daniel Helldén", partyName: "Green", leaderSeat: "Stockholm County / Stockholm Municipality", seatsBefore: 18, popularVote: 388753 }),
-      withWb(party("C",  "#1E8547", 25, 7.1, "left", 24, 6.71), { leader: "Elisabeth Thand Ringqvist", partyName: "Centre", leaderSeat: "Stockholm Municipality", seatsBefore: 24, popularVote: 452483 }),
-      withWb(party("L",  "#6A86BF", 19, 5.4, "right", 16, 4.61), { leader: "Simona Mohamsson", partyName: "Liberals", alliance: "Tidö", leaderSeat: "Västra Götaland County North", seatsBefore: 16, popularVote: 344142 }),
-      withWb(party("KD", "#4B5E86", 22, 6.2, "right", 19, 5.34), { leader: "Ebba Busch", partyName: "Christian Democrats", alliance: "Tidö", leaderSeat: "Västra Götaland County East", seatsBefore: 19, popularVote: 395126 }),
-      withWb(party("M",  "#4A9FD6", 70, 19.9, "right", 68, 19.10), { leader: "Ulf Kristersson", partyName: "Moderate", alliance: "Tidö", leaderSeat: "Södermanland County", seatsBefore: 66, popularVote: 1267018 }),
-      withWb(party("SD", "#EFCB46", 62, 17.5, "right", 73, 20.54), { leader: "Jimmie Åkesson", partyName: "Sweden Democrats", alliance: "Tidö", leaderSeat: "Jönköping County", seatsBefore: 70, popularVote: 1118521 })
+      withWb(party("V",  "#B8323B", 30, 8.4, "left", 24, 6.8), { leader: "Nooshi Dadgostar", partyName: "Left", leaderSeat: "Stockholm County", popularVote: 568781 }),
+      withWb(party("S",  "#E0444B", 99, 28.0, "left", 107, 30.3), { leader: "Magdalena Andersson", partyName: "Social Democrats", leaderSeat: "Stockholm County", popularVote: 1895989 }),
+      withWb(party("MP", "#2FA255", 22, 6.1, "left", 18, 5.1), { leader: "Amanda Lind", hasCoLeader: true, leader2: "Daniel Helldén", partyName: "Green", leaderSeat: "Stockholm County / Stockholm Municipality", popularVote: 414307 }),
+      withWb(party("C",  "#1E8547", 25, 7.0, "left", 24, 6.7), { leader: "Elisabeth Thand Ringqvist", partyName: "Centre", leaderSeat: "Stockholm Municipality", popularVote: 475780 }),
+      withWb(party("L",  "#6A86BF", 19, 5.3, "right", 16, 4.6), { leader: "Simona Mohamsson", partyName: "Liberals", alliance: "Tidö", leaderSeat: "Västra Götaland County North", popularVote: 361187 }),
+      withWb(party("KD", "#4B5E86", 22, 6.2, "right", 19, 5.3), { leader: "Ebba Busch", partyName: "Christian Democrats", alliance: "Tidö", leaderSeat: "Västra Götaland County East", popularVote: 417790 }),
+      withWb(party("M",  "#4A9FD6", 70, 19.9, "right", 68, 19.1), { leader: "Ulf Kristersson", partyName: "Moderate", alliance: "Tidö", leaderSeat: "Södermanland County", popularVote: 1343438 }),
+      withWb(party("SD", "#EFCB46", 62, 17.5, "right", 73, 20.5), { leader: "Jimmie Åkesson", partyName: "Sweden Democrats", alliance: "Tidö", leaderSeat: "Jönköping County", popularVote: 1183248 })
     ],
     rt: rtDefaults({
       leftName: "Andersson's Bloc", rightName: "Kristersson's Bloc", source: "Election Authority",
-      valid: "6375101", invalid: "10900", blank: "95245", registered: "8051238",
-      othersLabel: "Other parties", othersVotes: "89251"
+      valid: "6768821", invalid: "6800", blank: "58792", registered: "8051355",
+      othersLabel: "Other parties", othersVotes: "108301"
     }),
-    bars: barsDefaults({ title: "Sweden", stat1Label: "Turnout", stat1Value: "**80.5%**", stat2Label: "Result", stat2Value: "**Final**" }),
+    bars: barsDefaults({ title: "Sweden", stat1Label: "Turnout", stat1Value: "**84.9%**", stat2Label: "Result", stat2Value: "**Final**" }),
     wb: wbDefaults({
       title: "2026 Swedish general election", flag: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxMDAiPjxyZWN0IHdpZHRoPSIxNiIgaGVpZ2h0PSIxMCIgZmlsbD0iIzAwNkFBNyIvPjxyZWN0IHg9IjUiIHdpZHRoPSIyIiBoZWlnaHQ9IjEwIiBmaWxsPSIjRkVDQzAyIi8+PHJlY3QgeT0iNCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjIiIGZpbGw9IiNGRUNDMDIiLz48L3N2Zz4=",
       date: "13 September 2026", prevLink: "2022", nextLink: "2030", subLink: "outgoing members", subLinkRight: "elected members",
       mapOn: true, govOn: true, govBeforeName: "Ulf Kristersson", govBeforeParty: "Moderate",
       legislature: "Riksdag", pollsText: "Opinion polls",
-      registered: "8,051,238", registeredChange: "3.5", prevRegistered: "7,775,390",
-      turnoutPct: "80.5", prevTurnoutPct: "84.21",
+      registered: "8,051,355", registeredChange: "3.5", prevRegistered: "7,775,390",
+      turnoutValue: "6,834,413 (84.9% ▲0.7pp)",
       reportingOn: false, reportingPct: "100", reportingAsOf: ""
     })
   }),
@@ -939,9 +1029,9 @@ const PRESETS = {
     prevYear: "Previous result", curYear: "Current result", prevTitle: "", prevSubtitle: "", theme: "light", showYearToggle: true, viewYear: "current", prevTotalSeats: 0, prevStatus: "**Final result**",
     font: "archivo", bg: "#F4F2F1", text: "#1F1F1F", grayscale: false, autoCutout: true, showLabels: true, showMajority: true,
     blocs: {
-      left:  { label: "Left bloc",  color: "#D8434A", photo: null, style: "circle", zoom: 1, ox: 0, oy: 0, autoColor: false },
-      right: { label: "Right bloc", color: "#3F8FC6", photo: null, style: "circle", zoom: 1, ox: 0, oy: 0, autoColor: false },
-      none:  { label: "Unaligned",  color: "#9AA0A6", photo: null, style: "circle", zoom: 1, ox: 0, oy: 0, autoColor: true }
+      left:  { label: "Left bloc",  color: "#D8434A", photo: null, photo2: null, style: "circle", zoom: 1, ox: 0, oy: 0, autoColor: false },
+      right: { label: "Right bloc", color: "#3F8FC6", photo: null, photo2: null, style: "circle", zoom: 1, ox: 0, oy: 0, autoColor: false },
+      none:  { label: "Unaligned",  color: "#9AA0A6", photo: null, photo2: null, style: "circle", zoom: 1, ox: 0, oy: 0, autoColor: true }
     },
     parties: [
       party("Party A", "#D8434A", 30, 30, "left"),
@@ -1005,7 +1095,7 @@ function fillDefaults(s){
     right: Object.assign({}, d.blocs.right, s.blocs.right),
     none: Object.assign({}, d.blocs.none, s.blocs.none)
   };
-  out.parties = s.parties.map(p => Object.assign({ id: nid(), abbr: "", color: "#888888", seats: 0, votes: 0, bloc: "none", included: true, prevSeats: null, prevVotes: null }, p));
+  out.parties = s.parties.map(p => Object.assign({ id: nid(), abbr: "", color: "#888888", seats: 0, votes: 0, bloc: "none", included: true, section: "", prevSeats: null, prevVotes: null }, p));
   if (!s.swingMode) out.swingMode = "off";
   out.wb = wbDefaults(s.wb || {});
   out.rt = rtDefaults(s.rt || {});
@@ -1036,7 +1126,7 @@ function changeTxt(cur, prev, kind){
   if (prev == null || prev === "") return { t: "new", d: 0, isNew: true };
   const d = kind === "seats" ? Math.round(cur) - Math.round(num(prev)) : Math.round((cur - num(prev)) * 10) / 10;
   const abs = kind === "seats" ? String(Math.abs(d)) : Math.abs(d).toFixed(1).replace(".", state.decimal);
-  const t = d > 0 ? "+" + abs : d < 0 ? "\u2212" + abs : "\u00B10";
+  const t = d > 0 ? "+" + abs : d < 0 ? "\u2212" + abs : "0";
   return { t, d, isNew: false };
 }
 function prevSum(side, key){
@@ -1117,8 +1207,33 @@ function unitsFor(list, b){
 function drawPhoto(ctx, bloc, cx, cy, r, clipBottom){
   const hasImg = !!bloc.photo;
   if (!hasImg) return;
-  const e = getImg(bloc.photo);
   const cut = bloc.style === "cutout";
+  // Co-leaders: split the plain circle into two halves, one face each. Cut-out
+  // style keeps a single figure (a split cut-out doesn't read well at that scale).
+  if (!cut && bloc.photo2){
+    ctx.save();
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = bloc.color; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    const drawHalf = (photo, hx0, hx1) => {
+      const e = photo ? getImg(photo) : null; if (!e) return;
+      const src = state.grayscale && e.gray ? e.gray : e.img;
+      const iw = src.naturalWidth || src.width, ih = src.naturalHeight || src.height;
+      const hw = hx1 - hx0, hh = r * 2;
+      const s = Math.max(hw / iw, hh / ih);
+      const dw = iw * s, dh = ih * s;
+      ctx.save();
+      ctx.beginPath(); ctx.rect(hx0, cy - r, hw, hh); ctx.clip();
+      ctx.drawImage(src, hx0 + (hw - dw) / 2, cy - r + (hh - dh) / 2, dw, dh);
+      ctx.restore();
+    };
+    drawHalf(bloc.photo, cx - r, cx);
+    drawHalf(bloc.photo2, cx, cx + r);
+    ctx.strokeStyle = "rgba(255,255,255,.65)"; ctx.lineWidth = Math.max(1, r * 0.03);
+    ctx.beginPath(); ctx.moveTo(cx, cy - r); ctx.lineTo(cx, cy + r); ctx.stroke();
+    ctx.restore();
+    return;
+  }
+  const e = getImg(bloc.photo);
   const top = cy - r * 1.85;
   ctx.save();
   ctx.beginPath(); ctx.rect(cx - r * 1.5, top - 2, r * 3, clipBottom - top + 2); ctx.clip();
@@ -1189,7 +1304,7 @@ function blocLargest(side){
 }
 function blocEffective(side){
   const b = state.blocs[side];
-  const base = { label: b.label, color: normHex(b.color) || "#888888", photo: b.photo, style: b.style, zoom: b.zoom, ox: b.ox, oy: b.oy };
+  const base = { label: b.label, color: normHex(b.color) || "#888888", photo: b.photo, photo2: b.photo2, style: b.style, zoom: b.zoom, ox: b.ox, oy: b.oy };
   if (!b.autoColor) return base;
   const list = state.parties.filter(p => p.bloc === side && inc(p));
   if (!list.length) return base;
@@ -1204,10 +1319,12 @@ function blocEffective(side){
   const usingPartyPhoto = !!(top && top.wb && top.wb.portrait);
   const prevView = state.viewYear === "previous";
   const topLeader = top && top.wb ? (prevView ? (top.wb.prevLeader || top.wb.leader) : top.wb.leader) : "";
+  const topCoLeader = usingPartyPhoto && top.wb.hasCoLeader ? (prevView ? (top.wb.prevLeader2 || top.wb.leader2) : top.wb.leader2) || "" : "";
   return {
-    label: topLeader || b.label,
+    label: [topLeader, topCoLeader].filter(Boolean).join(" / ") || b.label,
     color,
     photo: usingPartyPhoto ? top.wb.portrait : b.photo,
+    photo2: usingPartyPhoto ? (top.wb.hasCoLeader ? top.wb.portrait2 : null) : b.photo2,
     style: usingPartyPhoto ? "circle" : b.style,
     zoom: usingPartyPhoto ? 1 : b.zoom,
     ox: usingPartyPhoto ? 0 : b.ox,
@@ -1267,7 +1384,9 @@ function draw(ctx, opts){
   const hasNoneParties = S.parties.some(p => p.bloc === "none" && inc(p));
   const centerR = 46;
   const centerDiam = Math.round(centerR * 1.93);
-  const centerExtra = hasCenterPhoto ? centerDiam + 80 : 0;
+  const showCenterNums = hasNoneParties;
+  const cBigSize = 42 * k, cSmallSize = 20 * k;
+  const centerNumsH = cBigSize * 0.86 + (S.metrics === "both" ? cSmallSize + 10 : 0);
   const x0 = hasPhotos ? 300 : pad, x1 = W - x0, cw = x1 - x0;
   const b = basis();
   const totSeats = Math.max(1, Math.round(num(S.totalSeats)));
@@ -1335,6 +1454,15 @@ function draw(ctx, opts){
   }
 
   // bar
+  let centerExtra = 0;
+  if (showCenterNums || hasCenterPhoto){
+    const numsBottom = headTop + (showCenterNums ? centerNumsH : 0);
+    const gapBeforePhoto = (showCenterNums && hasCenterPhoto) ? 10 : 0;
+    const centerBottom = hasCenterPhoto ? numsBottom + gapBeforePhoto + centerDiam : numsBottom;
+    const swMaybe = S.metrics !== "seats";
+    const textBuffer = 16 + (S.showMajority ? 24 : 0) + (swMaybe ? 34 : 0);
+    centerExtra = Math.max(0, (centerBottom + textBuffer) - (hy + 16));
+  }
   const barTop = hy + 16 + centerExtra, barH = 34;
   ctx.fillStyle = track; rr(ctx, x0, barTop, cw, barH, 9); ctx.fill();
   const wl = cw * V.bl, wr = cw * V.br;
@@ -1380,10 +1508,46 @@ function draw(ctx, opts){
     drawPhoto(ctx, L, cxL, cy, r, clipBottom);
     drawPhoto(ctx, R, W - cxL, cy, r, clipBottom);
   }
-  if (hasCenterPhoto){
-    const clipBottomC = hy + centerDiam + 8;
-    const cyC = clipBottomC - centerR * 0.86;
-    drawPhoto(ctx, CB, x0 + cw / 2, cyC, centerR, clipBottomC);
+  if (showCenterNums || hasCenterPhoto){
+    let cCursor = headTop;
+    const noneS = blocSum("none", "seats"), noneV = blocSum("none", "votes");
+    if (showCenterNums){
+      const cBigTxt = bigKey === "votes" ? fmtPct(noneV) : seatTxt(noneS);
+      const cSmallTxt = bigKey === "votes" ? seatTxt(noneS) : fmtPct(noneV);
+      const prevNoneKey = bigKey === "votes" ? "prevVotes" : "prevSeats";
+      const prevNone = prevSum("none", prevNoneKey);
+      const cChg = prevNone == null ? null : changeTxt(bigKey === "votes" ? noneV : noneS, prevNone, bigKey);
+      font(800, cBigSize);
+      const cw2 = ctx.measureText(cBigTxt).width;
+      let chgw = 0;
+      if (cChg && showChg){ font(700, cBigSize * 0.4); chgw = ctx.measureText(cChg.t).width + 8; }
+      const cx0 = x0 + cw / 2 - (cw2 + chgw) / 2;
+      font(800, cBigSize); ctx.textAlign = "left"; ctx.fillStyle = CB.color;
+      const cBaseline = cCursor + cBigSize * 0.8;
+      ctx.fillText(cBigTxt, cx0, cBaseline);
+      if (cChg && showChg){ font(700, cBigSize * 0.4); ctx.fillStyle = chgColor(cChg); ctx.fillText(cChg.t, cx0 + cw2 + 8, cBaseline); }
+      cCursor += cBigSize * 0.86;
+      if (S.metrics === "both"){
+        const smallKeyC = bigKey === "votes" ? "seats" : "votes";
+        const prevNoneSmall = prevSum("none", smallKeyC === "seats" ? "prevSeats" : "prevVotes");
+        const cSmallChg = prevNoneSmall == null ? null : changeTxt(smallKeyC === "seats" ? noneS : noneV, prevNoneSmall, smallKeyC);
+        font(700, cSmallSize);
+        const csw = ctx.measureText(cSmallTxt).width;
+        let cschgw = 0;
+        if (cSmallChg && showChg){ font(700, cSmallSize * 0.62); cschgw = ctx.measureText(cSmallChg.t).width + 6; }
+        const csx0 = x0 + cw / 2 - (csw + cschgw) / 2;
+        font(700, cSmallSize); ctx.textAlign = "left"; ctx.fillStyle = CB.color;
+        const csBaseline = cCursor + cSmallSize * 0.82;
+        ctx.fillText(cSmallTxt, csx0, csBaseline);
+        if (cSmallChg && showChg){ font(700, cSmallSize * 0.62); ctx.fillStyle = chgColor(cSmallChg); ctx.fillText(cSmallChg.t, csx0 + csw + 6, csBaseline); }
+        cCursor += cSmallSize + 10;
+      }
+      if (hasCenterPhoto) cCursor += 10;
+    }
+    if (hasCenterPhoto){
+      const cyC = cCursor + centerR;
+      drawPhoto(ctx, CB, x0 + cw / 2, cyC, centerR, cyC + centerR + 2);
+    }
   }
 
   // squares (seats) or flat bars (vote share)
@@ -1486,7 +1650,7 @@ function draw(ctx, opts){
     const miniCy = wBottom + 14 + miniR;
     miniParties.forEach(p => {
       const cx = centAvg[p.id];
-      const miniBloc = { photo: p.wb.portrait, color: normHex(p.color) || "#888888", style: "circle", zoom: 1, ox: 0, oy: 0 };
+      const miniBloc = { photo: p.wb.portrait, photo2: p.wb.hasCoLeader ? p.wb.portrait2 : null, color: normHex(p.color) || "#888888", style: "circle", zoom: 1, ox: 0, oy: 0 };
       drawPhoto(ctx, miniBloc, cx, miniCy, miniR, miniCy + miniR + 2);
       ctx.beginPath(); ctx.arc(cx, miniCy, miniR, 0, Math.PI * 2); ctx.lineWidth = 2; ctx.strokeStyle = bg; ctx.stroke();
     });
@@ -1769,6 +1933,13 @@ function renderBlocs(){
         ${b.photo ? `<button class="btn small" data-cutbloc="${s}">Remove background</button><button class="btn small danger" data-remove="${s}">Remove</button>` : ""}
       </div>
       ${b.autoColor ? `<p class="hint" style="margin:0">This photo is only used as a fallback when ${s === "none" ? "no unaligned party" : "no party in this bloc"} has its own portrait set.</p>` : ""}
+      ${b.photo && b.style !== "cutout" ? `
+      <label class="check"><input type="checkbox" data-coleaderbloc="${s}"${b.photo2 ? " checked" : ""}> Co-leaders (split the circle in two)</label>
+      ${b.photo2 ? `<div class="photo-row">
+        <div class="thumb" style="${`background-image:url('${b.photo2}');`}${state.grayscale ? "filter:grayscale(1)" : ""}"></div>
+        <button class="btn small" data-upload="${s}" data-slot="2">Replace co-leader photo</button>
+        <button class="btn small danger" data-remove="${s}" data-slot="2">Remove</button>
+      </div>` : ""}` : ""}
       ${b.photo ? `
       <label class="f">Photo shape
         <select data-style="${s}">
@@ -1785,18 +1956,24 @@ function renderBlocs(){
   }).join("");
   syncBound();
 }
-let uploadSide = null;
+let uploadSide = null, uploadSlot = "";
 document.addEventListener("click", e => {
   const up = e.target.closest("[data-upload]");
-  if (up){ uploadSide = up.dataset.upload; $("#photoInput").value = ""; $("#photoInput").click(); return; }
+  if (up){ uploadSide = up.dataset.upload; uploadSlot = up.dataset.slot || ""; $("#photoInput").value = ""; $("#photoInput").click(); return; }
   const rm = e.target.closest("[data-remove]");
-  if (rm){ state.blocs[rm.dataset.remove].photo = null; renderBlocs(); schedule(); }
+  if (rm){ const slot = rm.dataset.slot || ""; state.blocs[rm.dataset.remove]["photo" + slot] = null; renderBlocs(); schedule(); }
+  const cl = e.target.closest("[data-coleaderbloc]");
+  if (cl){
+    const b = state.blocs[cl.dataset.coleaderbloc];
+    if (b.photo2) b.photo2 = null; else { uploadSide = cl.dataset.coleaderbloc; uploadSlot = "2"; $("#photoInput").value = ""; $("#photoInput").click(); }
+    renderBlocs(); schedule();
+  }
 });
 $("#photoInput").addEventListener("change", e => {
   const file = e.target.files && e.target.files[0];
   if (!file || !uploadSide) return;
   if (!/^image\//.test(file.type)){ toast("That file isn't an image. Choose a JPG, PNG or WebP."); return; }
-  const side = uploadSide;
+  const side = uploadSide, slot = uploadSlot;
   const reader = new FileReader();
   reader.onload = () => {
     const img = new Image();
@@ -1806,10 +1983,15 @@ $("#photoInput").addEventListener("change", e => {
       if (!c) return;
       const cutDone = c !== orig;
       const isPng = cutDone || file.type === "image/png" || file.type === "image/webp" || file.type === "image/gif";
-      state.blocs[side].photo = c.toDataURL(isPng ? "image/png" : "image/jpeg", 0.9);
-      if (isPng && hasTransparency(c)) state.blocs[side].style = "cutout";
-      else if (!isPng) state.blocs[side].style = "circle";
-      Object.assign(state.blocs[side], { zoom: 1, ox: 0, oy: 0 });
+      const dataUrl = c.toDataURL(isPng ? "image/png" : "image/jpeg", 0.9);
+      if (slot === "2"){
+        state.blocs[side].photo2 = dataUrl;
+      } else {
+        state.blocs[side].photo = dataUrl;
+        if (isPng && hasTransparency(c)) state.blocs[side].style = "cutout";
+        else if (!isPng) state.blocs[side].style = "circle";
+        Object.assign(state.blocs[side], { zoom: 1, ox: 0, oy: 0 });
+      }
       renderBlocs(); schedule();
     };
     img.onerror = () => toast("Couldn't read that image. Try a different file.");
@@ -1906,6 +2088,7 @@ function renderParties(){
         <button class="btn icon" data-wbphoto="${p.id}" aria-label="Upload a leader photo for ${esc(p.abbr)}" title="Upload leader photo">📷</button>
         ${p.wb && p.wb.portrait ? `<button class="btn icon danger" data-wbphotodel="${p.id}" aria-label="Remove leader photo" title="Remove photo">✕</button>` : ""}
       </div>
+      <input type="text" class="party-section" value="${esc(p.section || "")}" data-pfield="section" placeholder="Electorate / section (optional, e.g. Denmark proper)" aria-label="Electorate or section for ${esc(p.abbr)}">
       <div class="bottom">
         <label class="f">Seats<input type="number" min="0" step="1" value="${p.seats}" data-pfield="seats"></label>
         <label class="f">Vote %<input type="number" min="0" max="100" step="0.1" value="${p.votes}" data-pfield="votes"></label>
@@ -2583,7 +2766,7 @@ function parseCount(v){ const t = String(v == null ? "" : v).replace(/[^\d]/g, "
 function wbArrow(d, text){
   if (d > 0) return `<span style="color:${WB_UP}">&#9650;</span>&nbsp;${text}`;
   if (d < 0) return `<span style="color:${WB_DOWN}">&#9660;</span>&nbsp;${text}`;
-  return `<span style="color:${WB_STEADY};font-weight:bold">&#8212;</span>${text}`;
+  return text;
 }
 const WB_STEADY = "#3366CC";
 // Colour any ▲ / ▼ / ▬ typed into free text, Wikipedia style
@@ -2591,7 +2774,7 @@ function colorArrows(escaped){
   return escaped
     .replace(/▲/g, `<span style="color:${WB_UP}">&#9650;</span>`)
     .replace(/▼/g, `<span style="color:${WB_DOWN}">&#9660;</span>`)
-    .replace(/▬/g, `<span style="color:${WB_STEADY};font-weight:bold">&#8212;</span>`);
+    .replace(/▬/g, `<span style="font-weight:bold">&#8212;</span>`);
 }
 function turnoutInfo(w){
   const pct = String(w.turnoutPct ?? "").trim();
@@ -2608,14 +2791,27 @@ function registeredChange(w){
   if (now && before) return Math.round((now - before) / before * 1000) / 10;
   return null;
 }
+// When a party belongs to an electorate/section (e.g. "Faroe Islands") and its
+// vote count is known, show that party's share WITHIN its own electorate rather
+// than its (much smaller) share of the whole country's vote.
+function regionalPct(p, useKey, fallback){
+  if (!p.section) return fallback;
+  const peers = state.parties.filter(x => (x.section || "") === p.section);
+  const known = peers.filter(x => x.wb && x.wb[useKey] != null && x.wb[useKey] !== "");
+  if (!known.length || p.wb[useKey] == null || p.wb[useKey] === "") return fallback;
+  const total = known.reduce((a, x) => a + num(x.wb[useKey]), 0);
+  return total > 0 ? num(p.wb[useKey]) / total * 100 : fallback;
+}
 function wbData(p){
   const w = p.wb || {};
   const hasPrevS = p.prevSeats != null, hasPrevV = p.prevVotes != null;
+  const curPct = regionalPct(p, "popularVote", num(p.votes));
+  const prevPctVal = hasPrevV ? regionalPct(p, "prevPopularVote", num(p.prevVotes)) : null;
   const last = [];
   if (hasPrevS && state.metrics !== "votes") last.push(`${Math.round(num(p.prevSeats))} ${String(state.seatWord || "seats").toLowerCase()}`);
-  if (hasPrevV && state.metrics !== "seats") last.push(`${fmtP(p.prevVotes)}%`);
+  if (hasPrevV && state.metrics !== "seats") last.push(`${fmtP(prevPctVal)}%`);
   const ds = hasPrevS ? Math.round(num(p.seats)) - Math.round(num(p.prevSeats)) : null;
-  const dv = hasPrevV ? Math.round((num(p.votes) - num(p.prevVotes)) * 10) / 10 : null;
+  const dv = hasPrevV ? Math.round((curPct - prevPctVal) * 10) / 10 : null;
   const prevView = state.viewYear === "previous";
   const leaderNow = prevView ? (w.prevLeader || w.leader || "") : (w.leader || "");
   const leader2Now = prevView ? (w.prevLeader2 || (w.hasCoLeader ? w.leader2 : "") || "") : (w.hasCoLeader ? (w.leader2 || "") : "");
@@ -2626,7 +2822,7 @@ function wbData(p){
     won: fmtInt(num(p.seats)),
     ds, dv,
     vote: w.popularVote == null || w.popularVote === "" ? "" : fmtInt(num(w.popularVote)),
-    pct: `${fmtP(p.votes)}%`
+    pct: `${fmtP(curPct)}%`
   };
 }
 function buildInfobox(){
@@ -2637,7 +2833,7 @@ function buildInfobox(){
   };
   const width = clamp(Math.round(num(w.width)) || 420, 260, 1000);
   const bd = `1px solid ${c.border}`;
-  const L = t => `<span style="color:${c.link}">${E(t)}</span>`;
+  const L = t => state.wb.showLinks === false ? E(t) : `<span style="color:${c.link}">${E(t)}</span>`;
   const tot = Math.max(1, Math.round(num(state.totalSeats)));
   const maj = Math.floor(tot / 2) + 1;
   const title = w.title || state.title || "Election";
@@ -2657,7 +2853,21 @@ function buildInfobox(){
       <td style="padding:0 2px 4px 14px;text-align:left">${w.subLink ? `&larr;&nbsp;${L(w.subLink)}` : ""}</td>
       <td style="padding:0 14px 4px 2px;text-align:right">${w.subLinkRight ? `${L(w.subLinkRight)}&nbsp;&rarr;` : ""}</td></tr></table>`;
   }
-  const seatsLine = w.seatsText ? E(w.seatsText) : `All ${tot} ${E(state.seatWord)} to the ${L(w.legislature || "parliament")}`;
+  // When electorates/sections are set up and the user hasn't typed a custom
+  // seats line, build one automatically with each electorate name linked
+  // ("175 from Denmark proper, 2 from Greenland and 2 from the Faroe Islands"),
+  // matching how Wikipedia links each electorate in this sentence.
+  function autoSeatsLine(){
+    const secs = (state.rt.sections || []).filter(sec => sec.name);
+    if (!secs.length) return null;
+    const parts = secs.map(sec => {
+      const n = state.parties.filter(p => (p.section || "") === sec.name).reduce((a, p) => a + Math.round(num(p.seats)), 0);
+      return `${fmtInt(n)} from ${L(sec.overviewName || sec.name)}`;
+    });
+    const joined = parts.length === 1 ? parts[0] : parts.length === 2 ? parts.join(" and ") : parts.slice(0, -1).join(", ") + " and " + parts[parts.length - 1];
+    return `All ${tot} ${E(state.seatWord)} to the ${L(w.legislature || "parliament")}<br>${joined}`;
+  }
+  const seatsLine = w.seatsText ? E(w.seatsText) : (autoSeatsLine() || `All ${tot} ${E(state.seatWord)} to the ${L(w.legislature || "parliament")}`);
   const majLine = w.majorityText ? E(w.majorityText) : `${maj} ${E(state.seatWord)} needed for a majority`;
   h += `<div style="border-top:${bd};padding:5px 2px;text-align:center">${showSeats ? `${seatsLine}<br>${majLine}` : seatsLine}</div>`;
   if (w.pollsText) h += `<div style="text-align:center;padding:2px 2px 6px">${L(w.pollsText)}</div>`;
@@ -2699,10 +2909,24 @@ function buildInfobox(){
     const th = t => `<th style="background:${c.head};${cb};padding:4px 5px;text-align:center;font-weight:bold">${t}</th>`;
     const td = (t, al) => `<td style="${cb};padding:3px 5px;text-align:${al || "right"};vertical-align:middle">${t}</td>`;
     const barTd = col => `<td style="${cb};padding:0;width:7px;min-width:7px;background:${col}"></td>`;
-    const plainChg = ct => ct == null ? "New" : `<span style="color:${!state.changeColors ? "inherit" : ct.d > 0 ? WB_UP : ct.d < 0 ? WB_DOWN : WB_STEADY}">${ct.t}</span>`;
+    const plainChg = ct => ct == null ? "New" : (ct.d === 0 ? `<span style="color:${c.text}">${ct.t}</span>` : `<span style="color:${!state.changeColors ? "inherit" : ct.d > 0 ? WB_UP : WB_DOWN}">${ct.t}</span>`);
     const anyLeader = cols.some(p => p.wb && p.wb.leader), anyVote = cols.some(p => p.wb && p.wb.popularVote != null && p.wb.popularVote !== "");
+    const listColCount = 2 + (anyLeader ? 1 : 0) + (showVotes ? (anyVote ? 1 : 0) + 2 : 0) + (showSeats ? 2 : 0);
     let t = `<table style="width:100%;border-collapse:separate;border-spacing:0;border-top:${bd};border-left:${bd};margin-top:6px"><tr><th colspan="2" style="background:${c.head};${cb};padding:4px 5px;text-align:left;font-weight:bold">Party</th>${anyLeader ? th(E(w.leaderLabel || "Leader")) : ""}${showVotes ? (anyVote ? th("Votes") : "") + th("%") + th("&plusmn;") : ""}${showSeats ? th(E(cap(state.seatWord))) + th("&plusmn;") : ""}</tr>`;
-    cols.forEach(p => {
+    let orderedCols = cols;
+    const hasSections = cols.some(p => p.section);
+    if (hasSections){
+      const seen = [], groups = {};
+      cols.forEach(p => { const sec = p.section || ""; if (!groups[sec]){ groups[sec] = []; seen.push(sec); } groups[sec].push(p); });
+      orderedCols = seen.reduce((a, sec) => a.concat(groups[sec]), []);
+    }
+    let curSection = null;
+    orderedCols.forEach(p => {
+      if (hasSections && p.section !== curSection){
+        curSection = p.section;
+        const label = curSection ? `Parties in ${E(curSection)}` : "Other parties";
+        t += `<tr><th colspan="${listColCount}" style="background:${c.head};${cb};padding:4px 5px;text-align:center">${label}</th></tr>`;
+      }
       const d = wbData(p);
       t += `<tr>${barTd(E(normHex(p.color) || "#888888"))}<td style="${cb};padding:3px 5px;text-align:left;vertical-align:middle">${L(d.party)}</td>`;
       if (anyLeader) t += td([d.leader, d.leader2].filter(Boolean).map(L).join("<br>"), "left");
@@ -2744,7 +2968,7 @@ function buildInfobox(){
     ["Leader's seat", d => d.seat ? L(d.seat) : ""],
     ["Last election", d => E(d.last)],
     ...(showSeats ? [
-      [`${E(cap(state.seatWord))} before`, d => d.before],
+      ...(cols.some(p => p.wb && p.wb.seatsBefore != null && p.wb.seatsBefore !== "") ? [[`${E(cap(state.seatWord))} before`, d => d.before]] : []),
       [`${E(cap(state.seatWord))} won`, (d, p) => B(p, d.won)],
       [`${E(cap(state.seatWord.replace(/s$/, "")))} change`, d => d.ds == null ? "" : wbArrow(d.ds, String(Math.abs(d.ds)))]
     ] : []),
@@ -2787,10 +3011,22 @@ function wbFooter(c, bd, L, E){
   const w = state.wb;
   let h = "";
   if (w.mapOn){
+    const maps = (w.maps && w.maps.length) ? w.maps : [{ label: "Map", photo: w.map, caption: w.mapCaption }];
+    const rid = "wbmap" + Math.random().toString(36).slice(2, 8);
     h += `<div style="border-top:${bd};margin-top:8px;padding:8px 2px 4px;text-align:center">`;
-    if (w.map) h += `<img src="${w.map}" alt="" style="display:block;max-width:100%;height:auto;margin:0 auto">`;
-    else h += `<div style="height:170px;border:2px dashed ${c.border};display:flex;align-items:center;justify-content:center;color:${mix(c.text, c.bg, 0.45)};font-size:14px;line-height:170px;text-align:center">Map</div>`;
-    if (w.mapCaption) h += `<div style="padding:6px 4px 0;font-size:92%;line-height:1.35">${colorArrows(E(w.mapCaption))}</div>`;
+    if (maps.length > 1){
+      maps.forEach((mp, i) => { h += `<input type="radio" name="${rid}" id="${rid}_${i}" class="wbx-mapradio" data-mi="${i}"${i === 0 ? " checked" : ""} style="position:absolute;opacity:0;pointer-events:none">`; });
+      h += `<div class="wbx-maptabs" style="display:inline-flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;padding:3px;background:${c.head};border-radius:8px">`;
+      maps.forEach((mp, i) => { h += `<label for="${rid}_${i}" class="wbx-maptab" data-mi="${i}" style="padding:5px 12px;border-radius:6px;font-size:92%;cursor:pointer;user-select:none">${E(mp.label || `Map ${i + 1}`)}</label>`; });
+      h += `</div><br>`;
+    }
+    maps.forEach((mp, i) => {
+      h += `<div class="wbx-mapimg" data-mi="${i}" style="${i === 0 ? "" : "display:none"}">`;
+      if (mp.photo) h += `<img src="${mp.photo}" alt="" style="display:block;max-width:100%;height:auto;margin:0 auto">`;
+      else h += `<div style="height:170px;border:2px dashed ${c.border};display:flex;align-items:center;justify-content:center;color:${mix(c.text, c.bg, 0.45)};font-size:14px;line-height:170px;text-align:center">${E(mp.label || "Map")}</div>`;
+      if (mp.caption) h += `<div style="padding:6px 4px 0;font-size:92%;line-height:1.35">${colorArrows(E(mp.caption))}</div>`;
+      h += `</div>`;
+    });
     h += `</div>`;
   }
   if (w.govOn && (w.govBeforeName || w.govAfterName || w.govBeforeParty || w.govAfterParty)){
@@ -2806,6 +3042,48 @@ function wbFooter(c, bd, L, E){
   return h;
 }
 function initials(t){ return String(t || "?").split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join("") || "?"; }
+function switchMap(el){
+  const scope = el.closest(".wbx"); if (!scope) return;
+  const i = el.dataset.mi;
+  $$(".wbx-mapimg", scope).forEach(m => { m.style.display = m.dataset.mi === i ? "" : "none"; });
+  $$(".wbx-maptab", scope).forEach(t => { t.style.background = t.dataset.mi === i ? "rgba(0,0,0,.12)" : "transparent"; t.style.fontWeight = t.dataset.mi === i ? "bold" : "normal"; });
+}
+document.addEventListener("change", e => { const el = e.target.closest(".wbx-mapradio"); if (el) switchMap(el); });
+/* ---------- multi-map editor ---------- */
+function renderMapsEditor(){
+  const box = $("#wbMaps"); if (!box) return;
+  if (!state.wb.maps.length && state.wb.map) state.wb.maps = [{ label: "Map 1", photo: state.wb.map, caption: state.wb.mapCaption || "" }];
+  const maps = state.wb.maps;
+  box.innerHTML = maps.map((mp, i) => `<div class="wb-card" data-mapidx="${i}" style="--pc:${esc(state.wb.link || "#3366CC")}">
+      <h4><input type="text" value="${esc(mp.label || `Map ${i + 1}`)}" data-mapf="label" style="border:0;background:none;font-weight:bold;font-size:15px;padding:2px 0;width:70%" aria-label="Label for map ${i + 1}"><button class="btn icon danger" data-mapdel="${i}" aria-label="Remove this map">✕</button></h4>
+      <div class="portrait-row">
+        <div class="portrait-thumb" data-mapthumb="${i}" style="width:70px;height:52px;${mp.photo ? `background-image:url('${mp.photo}')` : ""}"></div>
+        <button class="btn small" data-mapupload="${i}">${mp.photo ? "Replace image" : "Upload image"}</button>
+        ${mp.photo ? `<button class="btn small danger" data-mapimgdel="${i}">Remove image</button>` : ""}
+      </div>
+      <label class="f">Caption<input type="text" value="${esc(mp.caption || "")}" data-mapf="caption" placeholder="Optional"></label>
+    </div>`).join("") || `<p class="hint" style="margin:0">No maps yet.</p>`;
+}
+let mapUploadIndex = null;
+$("#wbAddMap").addEventListener("click", () => {
+  state.wb.maps.push({ label: `Map ${state.wb.maps.length + 1}`, photo: null, caption: "" });
+  state.wb.mapOn = true; syncBound(); renderMapsEditor(); schedule();
+});
+$("#wbMaps").addEventListener("click", e => {
+  const up = e.target.closest("[data-mapupload]");
+  if (up){ wbUploadTarget = { kind: "map", index: +up.dataset.mapupload }; $("#wbFileInput").value = ""; $("#wbFileInput").click(); return; }
+  const del = e.target.closest("[data-mapdel]");
+  if (del){ state.wb.maps.splice(+del.dataset.mapdel, 1); renderMapsEditor(); schedule(); return; }
+  const imgdel = e.target.closest("[data-mapimgdel]");
+  if (imgdel){ state.wb.maps[+imgdel.dataset.mapimgdel].photo = null; renderMapsEditor(); schedule(); return; }
+});
+$("#wbMaps").addEventListener("input", e => {
+  const el = e.target.closest("[data-mapf]"); if (!el) return;
+  const i = +el.closest("[data-mapidx]").dataset.mapidx;
+  state.wb.maps[i][el.dataset.mapf] = el.value;
+  schedule();
+});
+
 function renderInfobox(){
   const el = $("#wbPreview"); if (!el) return;
   const html = buildInfobox();
@@ -2816,8 +3094,6 @@ function renderInfobox(){
   $$("[data-wbgrid]").forEach(x => { x.style.display = state.wb.layout === "list" ? "none" : ""; });
   const ft = $("#wbFlagThumb"); if (ft) ft.style.backgroundImage = state.wb.flag ? `url('${state.wb.flag}')` : "";
   $("#wbFlagDel").hidden = !state.wb.flag;
-  const mt2 = $("#wbMapThumb"); if (mt2) mt2.style.backgroundImage = state.wb.map ? `url('${state.wb.map}')` : "";
-  $("#wbMapDel").hidden = !state.wb.map;
 }
 
 function wbDerivedText(p){
@@ -2963,8 +3239,6 @@ $("#wbAddCustom").addEventListener("click", () => {
   renderWbEditor(); schedule();
   const rows = $$("#wbCustom [data-wbcf=label]"); if (rows.length) rows[rows.length - 1].focus();
 });
-$("#wbMapUp").addEventListener("click", () => { wbUploadTarget = { kind: "map" }; $("#wbFileInput").value = ""; $("#wbFileInput").click(); });
-$("#wbMapDel").addEventListener("click", () => { state.wb.map = null; schedule(); });
 $("#wbFlagUp").addEventListener("click", () => { wbUploadTarget = { kind: "flag" }; $("#wbFileInput").value = ""; $("#wbFileInput").click(); });
 $("#wbFlagDel").addEventListener("click", () => { state.wb.flag = null; schedule(); });
 function cropPortrait(img, type, zoom, ox, oy){
@@ -3046,8 +3320,10 @@ $("#wbFileInput").addEventListener("change", e => {
     img.onload = async () => {
       if (target.kind === "map"){
         const c = canvasFromImage(img, 900);
-        state.wb.map = c.toDataURL(file.type === "image/png" || file.type === "image/svg+xml" ? "image/png" : "image/jpeg", 0.9);
-        state.wb.mapOn = true; syncBound(); schedule();
+        const dataUrl = c.toDataURL(file.type === "image/png" || file.type === "image/svg+xml" ? "image/png" : "image/jpeg", 0.9);
+        if (!state.wb.maps.length) state.wb.maps.push({ label: "Map 1", photo: null, caption: state.wb.mapCaption || "" });
+        state.wb.maps[target.index].photo = dataUrl;
+        state.wb.mapOn = true; syncBound(); renderMapsEditor(); schedule();
         return;
       }
       if (target.kind === "flag"){
@@ -3339,7 +3615,7 @@ function buildResults(){
   const bd = `1px solid ${c.border}`;
   const cb = `border-right:${bd};border-bottom:${bd}`;
   const tbl = `width:100%;border-collapse:separate;border-spacing:0;border-top:${bd};border-left:${bd};background:${c.bg}`;
-  const L = t => `<span style="color:${c.link}">${E(t)}</span>`;
+  const L = t => state.wb.showLinks === false ? E(t) : `<span style="color:${c.link}">${E(t)}</span>`;
   const m = rtModel();
   const showCh = r.showChange && m.anyPrev;
   const nCols = 5 + (showCh ? 1 : 0);
@@ -3377,6 +3653,53 @@ function buildResults(){
   if (r.caption) h += `<div style="font-weight:bold;font-size:115%;text-align:center;padding:4px 4px 8px">${E(r.caption)}</div>`;
   const view = r.view || (r.showBloc === false ? "party" : "both");
   const totPct = m.rows.reduce((a, x) => a + x.pct, 0) + (m.others ? m.others.pct : 0);
+  if (view === "sections" && r.sections && r.sections.length){
+    if (r.showArc){
+      h += `<table style="${tbl}">`;
+      const inParty = state.parties.filter(p => p.bloc === "left").concat(state.parties.filter(p => p.bloc === "none"), state.parties.filter(p => p.bloc === "right"));
+      h += arcRow(hemicycle(inParty.map(p => ({ color: normHex(p.color) || "#888", count: Math.round(num(p.seats)) })), m.tot, arcW, c.text, emptyDot));
+      h += `</table>`;
+    }
+    r.sections.forEach((sec, si) => {
+      const secParties = state.parties.filter(p => (p.section || "") === sec.name && sec.name);
+      if (!secParties.length) return;
+      const sorted = secParties.slice().sort((a, b) => num(b.seats) - num(a.seats) || num(b.votes) - num(a.votes));
+      const secTot = sorted.reduce((a, p) => a + Math.round(num(p.seats)), 0);
+      const anyVotesSec = sorted.some(p => p.wb && p.wb.popularVote != null && p.wb.popularVote !== "");
+      const secValid = anyVotesSec ? sorted.reduce((a, p) => a + (p.wb && p.wb.popularVote != null ? num(p.wb.popularVote) : 0), 0) : null;
+      const secInvalid = parseCount(sec.invalid), secBlank = parseCount(sec.blank), secRegistered = parseCount(sec.registered);
+      const secCast = secValid != null ? secValid + (secInvalid || 0) + (secBlank || 0) : null;
+      h += `<table style="${tbl}${si ? ";margin-top:14px" : ""}">`;
+      h += `<tr><th colspan="${nCols}" style="background:${c.head};${cb};padding:5px 6px;text-align:center;font-weight:bold">${E(sec.name)}</th></tr>`;
+      h += headerRow("Party");
+      let sumPct = 0;
+      sorted.forEach(p => {
+        const votesC = p.wb && p.wb.popularVote != null && p.wb.popularVote !== "" ? num(p.wb.popularVote) : null;
+        const pctC = secValid ? (votesC != null ? votesC / secValid * 100 : 0) : num(p.votes);
+        sumPct += pctC;
+        const pname = (p.wb && p.wb.partyName) || p.abbr;
+        const name = r.showAbbr && p.abbr && p.abbr !== pname ? `${L(pname)} (${E(p.abbr)})` : L(pname);
+        const chgVal = p.prevSeats == null ? null : Math.round(num(p.seats)) - Math.round(num(p.prevSeats));
+        h += `<tr>${sw(normHex(p.color) || "#888888")}${tdName(name)}${td(cnt(votesC))}${td(pct2(pctC))}${td(Math.round(num(p.seats)))}${showCh ? td(chg(chgVal)) : ""}</tr>`;
+      });
+      h += `<tr><th colspan="2" style="background:${c.head};${cb};padding:4px 6px;text-align:left">Total</th>${th(cnt(secValid), ";text-align:right")}${th(pct2(Math.round(sumPct) === 100 ? 100 : sumPct), ";text-align:right")}${th(secTot, ";text-align:right")}${showCh ? th("", ";text-align:right") : ""}</tr>`;
+      if (secValid != null || secInvalid != null || secBlank != null || secRegistered != null){
+        const p2 = (v, of) => v != null && of ? pct2(v / of * 100) : "";
+        const blankCell = `<td colspan="${nCols - 4}" style="${cb};padding:3px 6px"></td>`;
+        const row = (label, v, pc, b) => `<tr><td colspan="2" style="${cb};padding:3px 6px;text-align:left">${b ? bold(label) : label}</td>${td(b ? bold(cnt(v)) : cnt(v))}${td(b ? bold(pc) : pc)}${blankCell}</tr>`;
+        h += `<tr><td colspan="${nCols}" style="${cb};padding:0;height:6px;background:${c.bg}"></td></tr>`;
+        if (secValid != null) h += row("Valid votes", secValid, p2(secValid, secCast));
+        if (secInvalid != null) h += row("Invalid votes", secInvalid, p2(secInvalid, secCast));
+        if (secBlank != null) h += row("Blank votes", secBlank, p2(secBlank, secCast));
+        if (secCast != null) h += row("Total votes", secCast, pct2(100), true);
+        if (secRegistered != null) h += row("Registered voters/turnout", secRegistered, p2(secCast, secRegistered));
+      }
+      if (sec.source) h += `<tr><td colspan="${nCols}" style="${cb};padding:4px 6px;text-align:left">Source: ${L(sec.source)}</td></tr>`;
+      h += `</table>`;
+    });
+    h += `</div>`;
+    return h;
+  }
   if (view !== "coalition"){
     h += `<table style="${tbl}">`;
     if (r.showArc){
@@ -3449,6 +3772,38 @@ function resultsWikitext(){
   const view = r.view || (r.showBloc === false ? "party" : "both");
   const totPct = m.rows.reduce((a, x) => a + x.pct, 0) + (m.others ? m.others.pct : 0);
   const totalLine = `! colspan="2" style="text-align:left" | Total !! ${cnt(m.valid)} !! ${pct2(Math.round(totPct) === 100 ? 100 : totPct)} !! ${m.tot}${showCh ? ` !! ${chg(m.totChange)}` : ""}`;
+  if (view === "sections" && r.sections && r.sections.length){
+    r.sections.forEach(sec => {
+      const secParties = state.parties.filter(p => (p.section || "") === sec.name && sec.name);
+      if (!secParties.length) return;
+      const sorted = secParties.slice().sort((a, b) => num(b.seats) - num(a.seats) || num(b.votes) - num(a.votes));
+      const secTot = sorted.reduce((a, p) => a + Math.round(num(p.seats)), 0);
+      const anyVotesSec = sorted.some(p => p.wb && p.wb.popularVote != null && p.wb.popularVote !== "");
+      const secValid = anyVotesSec ? sorted.reduce((a, p) => a + (p.wb && p.wb.popularVote != null ? num(p.wb.popularVote) : 0), 0) : null;
+      const secInvalid = parseCount(sec.invalid), secBlank = parseCount(sec.blank), secRegistered = parseCount(sec.registered);
+      const secCast = secValid != null ? secValid + (secInvalid || 0) + (secBlank || 0) : null;
+      const QUOTE3 = "'" + "'" + "'";
+      out.push("", "{| class=\"wikitable\" style=\"text-align:right\"", "|-", "! colspan=\"" + (showCh ? 6 : 5) + "\" | " + sec.name, "|-", head);
+      let sumPct = 0;
+      sorted.forEach(p => {
+        const votesC = p.wb && p.wb.popularVote != null && p.wb.popularVote !== "" ? num(p.wb.popularVote) : null;
+        const pctC = secValid ? (votesC != null ? votesC / secValid * 100 : 0) : num(p.votes);
+        sumPct += pctC;
+        const pname = (p.wb && p.wb.partyName) || p.abbr;
+        const chgVal = p.prevSeats == null ? null : Math.round(num(p.seats)) - Math.round(num(p.prevSeats));
+        out.push("|-", `| style="background:${normHex(p.color) || "#888888"}" | || style="text-align:left" | [[${pname}]] || ${cnt(votesC)} || ${pct2(pctC)} || ${Math.round(num(p.seats))}${showCh ? ` || ${chg(chgVal)}` : ""}`);
+      });
+      out.push("|-", `! colspan="2" style="text-align:left" | Total !! ${cnt(secValid)} !! ${pct2(Math.round(sumPct) === 100 ? 100 : sumPct)} !! ${secTot}${showCh ? " !! " : ""}`);
+      if (secValid != null) out.push("|-", `| colspan="2" style="text-align:left" | Valid votes || ${cnt(secValid)} ||` + (showCh ? ` || colspan="2" |` : ` |`));
+      if (secInvalid != null) out.push("|-", `| colspan="2" style="text-align:left" | Invalid votes || ${cnt(secInvalid)} ||` + (showCh ? ` || colspan="2" |` : ` |`));
+      if (secBlank != null) out.push("|-", `| colspan="2" style="text-align:left" | Blank votes || ${cnt(secBlank)} ||` + (showCh ? ` || colspan="2" |` : ` |`));
+      if (secCast != null) out.push("|-", `| colspan="2" style="text-align:left" | ${QUOTE3}Total votes${QUOTE3} || ${cnt(secCast)} || ${QUOTE3}100.00${QUOTE3}` + (showCh ? " ||" : ""));
+      if (secRegistered != null) out.push("|-", `| colspan="2" style="text-align:left" | Registered voters/turnout || ${cnt(secRegistered)} ||` + (showCh ? ` || colspan="2" |` : ` |`));
+      if (sec.source) out.push("|-", `| colspan="${showCh ? 6 : 5}" style="text-align:left" | Source: ${sec.source}`);
+      out.push("|}");
+    });
+    return out.join("\n");
+  }
   if (view !== "coalition"){
     out.push(`{| class="wikitable" style="text-align:right"`);
     if (r.showArc) out.push(`|-`, `| colspan="${showCh ? 6 : 5}" style="text-align:center" | <!-- add a parliament diagram here, e.g. [[File:Example parliament diagram.svg|300px]] -->`);
@@ -3486,6 +3841,44 @@ function renderResults(){
   const rn = $("#rtRightName"); if (rn) rn.placeholder = state.blocs.right.label || "Right bloc";
   $$("#rtRows [data-rtpct]").forEach(x => { const p = findP(x.dataset.rtpct); if (p){ const row = m.rows.find(y => y.p === p); x.textContent = row ? `${fmtP(row.pct)}%` : ""; } });
 }
+/* ---------- results table: electorates / sections ---------- */
+function renderRtSections(){
+  const box = $("#rtSections"); if (!box) return;
+  const secs = state.rt.sections || [];
+  box.innerHTML = secs.map((sec, i) => `<div class="rt-sec-card" data-si="${i}">
+      <div class="row2">
+        <label class="f">Name<input type="text" data-secf="name" value="${esc(sec.name || "")}" placeholder="e.g. Denmark"></label>
+        <label class="f">Name in seats overview<input type="text" data-secf="overviewName" value="${esc(sec.overviewName || "")}" placeholder="Leave blank to reuse Name, e.g. Denmark proper"></label>
+      </div>
+      <div class="row2">
+        <label class="f">Source<input type="text" data-secf="source" value="${esc(sec.source || "")}" placeholder="Optional"></label>
+      </div>
+      <div class="row3">
+        <label class="f">Registered<input type="text" inputmode="numeric" data-secf="registered" value="${esc(sec.registered || "")}" placeholder="Optional"></label>
+        <label class="f">Invalid<input type="text" inputmode="numeric" data-secf="invalid" value="${esc(sec.invalid || "")}" placeholder="Optional"></label>
+        <label class="f">Blank<input type="text" inputmode="numeric" data-secf="blank" value="${esc(sec.blank || "")}" placeholder="Optional"></label>
+      </div>
+      <button class="btn small danger" data-secdel="${i}">Remove section</button>
+    </div>`).join("") || `<p class="hint" style="margin:0">No sections yet.</p>`;
+}
+$("#rtAddSection").addEventListener("click", () => {
+  state.rt.sections = state.rt.sections || [];
+  state.rt.sections.push({ name: "", registered: "", invalid: "", blank: "", source: "" });
+  renderRtSections(); schedule();
+  const inputs = $$("#rtSections [data-secf=name]"); if (inputs.length) inputs[inputs.length - 1].focus();
+});
+$("#rtSections").addEventListener("input", e => {
+  const el = e.target.closest("[data-secf]"); if (!el) return;
+  const i = +el.closest("[data-si]").dataset.si;
+  if (state.rt.sections[i]) state.rt.sections[i][el.dataset.secf] = el.value;
+  schedule();
+});
+$("#rtSections").addEventListener("click", e => {
+  const del = e.target.closest("[data-secdel]"); if (!del) return;
+  state.rt.sections.splice(+del.dataset.secdel, 1);
+  renderRtSections(); schedule();
+});
+
 function renderRtEditor(){
   const box = $("#rtRows"); if (!box) return;
   box.innerHTML = state.parties.map(p => `<div class="rt-row" data-wpid="${p.id}" style="--pc:${esc(normHex(p.color) || "#888")}">
@@ -3995,9 +4388,12 @@ function loadLZ(){
 function shareableState(includeImages){
   const s = snapshot();
   if (!includeImages){
-    s.blocs.left.photo = null; s.blocs.right.photo = null;
-    if (s.wb){ s.wb.flag = null; s.wb.map = null; }
-    s.parties.forEach(p => { if (p.wb){ p.wb.portrait = null; p.wb.portraitSrc = null; } });
+    ["left", "right", "none"].forEach(side => { if (s.blocs[side]){ s.blocs[side].photo = null; s.blocs[side].photo2 = null; } });
+    if (s.wb){
+      s.wb.flag = null; s.wb.map = null;
+      if (Array.isArray(s.wb.maps)) s.wb.maps.forEach(m => { m.photo = null; });
+    }
+    s.parties.forEach(p => { if (p.wb){ p.wb.portrait = null; p.wb.portraitSrc = null; p.wb.portrait2 = null; p.wb.portraitSrc2 = null; } });
   }
   return s;
 }
@@ -4024,7 +4420,7 @@ function compactState(full){
   const skip = { parties: 1, blocs: 1, wb: 1, rt: 1, bars: 1 };
   Object.keys(full).forEach(k => { if (!skip[k] && JSON.stringify(full[k]) !== JSON.stringify(BASE[k])) out[k] = full[k]; });
   out.blocs = { left: diffAgainstDefaults(full.blocs.left, BASE.blocs.left), right: diffAgainstDefaults(full.blocs.right, BASE.blocs.right), none: diffAgainstDefaults(full.blocs.none, BASE.blocs.none) };
-  const partyBase = { abbr: "", color: "#888888", seats: 0, votes: 0, bloc: "none", included: true, prevSeats: null, prevVotes: null };
+  const partyBase = { abbr: "", color: "#888888", seats: 0, votes: 0, bloc: "none", included: true, section: "", prevSeats: null, prevVotes: null };
   const wbPartyBase = wbPartyDefaults();
   out.parties = full.parties.map(p => {
     const d = diffAgainstDefaults(p, partyBase);
@@ -4318,6 +4714,35 @@ $("#xlsxConfirm").addEventListener("click", () => {
   toast(`Imported ${state.parties.length} parties \u2014 drag them onto a side, or set Bloc in the Parties list, to build the left/right split`);
 });
 
+/* ---------- Templates picker ---------- */
+// Naming template for every election preset: "{Year} {Endonym} General Election"
+const TEMPLATE_LIST = [
+  { key: "sweden", name: "2026 Swedish General Election", flag: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxMCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxMDAiPjxyZWN0IHdpZHRoPSIxNiIgaGVpZ2h0PSIxMCIgZmlsbD0iIzAwNkFBNyIvPjxyZWN0IHg9IjUiIHdpZHRoPSIyIiBoZWlnaHQ9IjEwIiBmaWxsPSIjRkVDQzAyIi8+PHJlY3QgeT0iNCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjIiIGZpbGw9IiNGRUNDMDIiLz48L3N2Zz4=" },
+  { key: "denmark", name: "2026 Danish General Election", flag: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzNyAyOCIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIxMjEiPjxyZWN0IHdpZHRoPSIzNyIgaGVpZ2h0PSIyOCIgZmlsbD0iI0M4MTAyRSIvPjxyZWN0IHg9IjEyIiB3aWR0aD0iNiIgaGVpZ2h0PSIyOCIgZmlsbD0iI0ZGRkZGRiIvPjxyZWN0IHk9IjExIiB3aWR0aD0iMzciIGhlaWdodD0iNiIgZmlsbD0iI0ZGRkZGRiIvPjwvc3ZnPg==" },
+  { key: "blank", name: "Blank sandbox", flag: null }
+];
+function renderTemplatesGrid(){
+  const grid = $("#tmplGrid"); if (!grid) return;
+  grid.innerHTML = TEMPLATE_LIST.map(t => `<button class="tmpl-card" data-tmpl="${t.key}">
+      ${t.flag ? `<img src="${t.flag}" class="tmpl-flag" alt="">` : `<span class="tmpl-flag blank">\u2014</span>`}
+      <span class="tmpl-name">${esc(t.name)}</span>
+    </button>`).join("");
+}
+$("#openTemplates").addEventListener("click", () => { renderTemplatesGrid(); $("#templatesDlg").showModal(); });
+$("#templatesClose").addEventListener("click", () => $("#templatesDlg").close());
+$("#tmplGrid").addEventListener("click", e => {
+  const btn = e.target.closest("[data-tmpl]"); if (!btn) return;
+  const key = btn.dataset.tmpl;
+  const preset = PRESETS[key]; if (!preset) return;
+  const keepPhotos = key === "sweden" ? { left: state.blocs.left.photo, right: state.blocs.right.photo } : null;
+  state = preset();
+  if (keepPhotos){ state.blocs.left.photo = keepPhotos.left; state.blocs.right.photo = keepPhotos.right; }
+  syncUid(); allowSave = true;
+  $("#templatesDlg").close();
+  renderAll();
+  toast(key === "blank" ? "Started a blank graphic" : `Loaded the ${TEMPLATE_LIST.find(t => t.key === key).name} template`);
+});
+
 (function setupRestore(){
   const box = $("#restoreBox");
   const sig = st => (st.title || "") + "|" + st.parties.map(p => `${p.abbr}:${p.seats}:${p.votes}:${p.bloc}`).join(",") + "|" + !!(st.blocs.left.photo || st.blocs.right.photo);
@@ -4349,7 +4774,7 @@ function applyFocus(){
 $("#exitFocus").addEventListener("click", () => {
   state.focusMode = ""; syncBound(); applyFocus();
 });
-function renderAll(){ syncBound(); renderBlocs(); renderParties(); renderWbEditor(); renderRtEditor(); renderLibrary(); applySectionVisibility(); applyFocus(); schedule(); }
+function renderAll(){ syncBound(); renderBlocs(); renderParties(); renderWbEditor(); renderMapsEditor(); renderRtEditor(); renderRtSections(); renderLibrary(); applySectionVisibility(); applyFocus(); schedule(); }
 
 updateMobileZoom();
 renderAll();
